@@ -427,7 +427,7 @@ function renderDetail(j) {
 
         <div class="detail-actions-bar">
             ${isOwner ? `<button class="detail-action-btn detail-action-btn-primary" onclick="editCurrentJournal()"><span>✏️</span> 编辑手帐</button>` : ''}
-            <button class="detail-action-btn detail-action-btn-secondary" onclick="exportJournal()"><span>📤</span> 导出图片</button>
+            <button class="detail-action-btn detail-action-btn-secondary" onclick="editCurrentJournal()"><span>✏️</span> 进入编辑</button>
             ${isOwner ? `<button class="detail-action-btn detail-action-btn-danger" onclick="deleteCurrentJournal()"><span>🗑️</span> 删除</button>` : ''}
         </div>
 
@@ -517,9 +517,8 @@ async function deleteCurrentJournal() {
 }
 
 async function exportJournal() {
-    if (!currentJournal) return;
-    showToast('导出功能：将手帐内容生成图片...');
-    // 实际导出逻辑可以在这里实现
+    // 详情页不允许直接导出，必须进入编辑器
+    showToast("请进入编辑器页面导出图片");
 }
 
 // ==================== 用户UI ====================
