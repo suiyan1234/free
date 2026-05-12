@@ -377,12 +377,12 @@ const Storage = {
 
 // ==================== 模板数据 ====================
 const templates = [
-    {id:'daily',name:'每日 PLOG',desc:'记录一天的美好，适合小红书风格长图。自动排版照片与文字，生成精美的每日回顾页面。',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','快速记录'],pages:1,features:['📷 智能照片排版','✍️ 心情文字区','🏷️ 自动标签生成','🎨 3种配色主题']},
-    {id:'food',name:'美食日记',desc:'记录旅途中的每一道美味，带评分系统。专为美食探店设计，支持菜品评分和价格记录。',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','探店'],pages:1,features:['⭐ 菜品评分系统','💰 价格记录','📍 店铺定位','🍜 美食分类标签']},
-    {id:'city',name:'城市碎片',desc:'街头巷尾的随手拍，拼贴风排版。适合记录城市漫步的零散瞬间，自动生成拼贴效果。',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','氛围感'],pages:1,features:['🧩 拼贴风排版','🎞️ 胶片边框','🌆 城市标签','✨ 氛围滤镜']},
-    {id:'spot',name:'景点记录',desc:'地标打卡与深度游览，地图轨迹展示。支持多张照片组合，记录完整的景点游览体验。',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','打卡'],pages:1,features:['📍 地点标记','🗺️ 游览路线','📸 打卡照片墙','📝 游览心得']},
-    {id:'mood',name:'情绪页',desc:'用文字和色彩表达旅行中的心情。大面积留白设计，突出文字的情绪表达力。',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','治愈'],pages:1,features:['🎨 情绪配色','🌙 夜间模式','💭 心情标签','🖊️ 手写字体']},
-    {id:'summary',name:'旅行总结',desc:'完整旅程回顾，自动生成时间轴。适合长旅行结束后的总结，包含行程统计和精选照片。',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','纪念册'],pages:3,features:['📊 行程统计','📅 时间轴','⭐ 精选回顾','📖 多页布局']}
+    {id:'daily',name:'每日 PLOG',desc:'标准杂志风排版，衬线字体，胶片边框照片，适合记录一天的完整行程。',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','杂志风'],pages:1,style:'film',features:['📷 胶片边框照片','✍️ 衬线字体排版','🏷️ 标签系统','🎨 可选手账底色']},
+    {id:'food',name:'美食日记',desc:'可爱圆角卡片式排版，圆体字体，美食标签，适合探店和美食记录。',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','可爱风'],pages:1,style:'cute',features:['🍱 圆角卡片照片','🍜 圆体可爱字体','⭐ 美食标签','🎨 可选手账底色']},
+    {id:'city',name:'城市碎片',desc:'拼贴手作风排版，手写体字体，胶带拍立得效果，适合街头随手拍。',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','拼贴风'],pages:1,style:'collage',features:['🧩 拼贴旋转照片','✍️ 手写体文字','🎞️ 胶带拍立得','🎨 可选手账底色']},
+    {id:'spot',name:'景点记录',desc:'宽幅画册风排版，衬线标题，宽幅照片，时间轴布局，适合景点深度记录。',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','画册风'],pages:1,style:'wide',features:['🖼️ 宽幅画册照片','📍 地点标记','⏱️ 时间轴','🎨 可选手账底色']},
+    {id:'mood',name:'情绪页',desc:'极简留白风排版，细衬线字体，圆形照片，大面积留白，适合表达心情。',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','极简风'],pages:1,style:'minimal',features:['🌙 大面积留白','💭 细衬线字体','🔵 圆形照片','🎨 可选手账底色']},
+    {id:'summary',name:'旅行总结',desc:'时间轴总结风排版，统计面板，多栏布局，适合长旅行后的完整回顾。',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','时间轴'],pages:3,style:'timeline',features:['📊 统计面板','📅 时间轴','📖 多栏布局','🎨 可选手账底色']}
 ];
 
 // ==================== 初始化 ====================
@@ -435,19 +435,24 @@ function goToMyJournals() {
 // ==================== 模板渲染 ====================
 function renderTemplates() {
     const grid = document.getElementById('templatesGrid');
-    grid.innerHTML = templates.map(t => `
+    grid.innerHTML = templates.map(t => {
+        const styleLabels = {film:"🎞️ 胶片",cute:"🍑 可爱",collage:"🧩 拼贴",wide:"🖼️ 画册",minimal:"🌙 极简",timeline:"📊 总结"};
+        return `
         <div class="template-card" onclick="showTemplateDetail('${t.id}')">
             <div class="template-preview">
                 <img src="${t.image}" alt="${t.name}" loading="lazy">
-                <div class="template-overlay"><span class="template-tag">${t.pages} 页</span></div>
+                <div class="template-overlay">
+                    <span class="template-tag">${styleLabels[t.style] || ""}</span>
+                    <span class="template-tag">${t.pages} 页</span>
+                </div>
             </div>
             <div class="template-info">
                 <h3>${t.name}</h3>
-                <p>${t.desc.substring(0, 50)}...</p>
+                <p>${t.desc.substring(0, 40)}...</p>
                 <div class="template-meta">${t.tags.map(tag => `<span>🏷️ ${tag}</span>`).join('')}</div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // ==================== 模板详情弹窗 ====================
@@ -460,7 +465,8 @@ function showTemplateDetail(id) {
     document.getElementById('templateDetailImg').alt = template.name;
     document.getElementById('templateDetailTitle').textContent = template.name;
     document.getElementById('templateDetailSubtitle').textContent = template.desc;
-    document.getElementById('templateDetailTags').innerHTML = template.tags.map(t => `<span class="template-detail-tag">${t}</span>`).join('');
+    const styleLabels = {film:"🎞️ 胶片风",cute:"🍑 可爱风",collage:"🧩 拼贴风",wide:"🖼️ 画册风",minimal:"🌙 极简风",timeline:"📊 总结风"};
+    document.getElementById('templateDetailTags').innerHTML = template.tags.map(t => `<span class="template-detail-tag">${t}</span>`).join('') + `<span class="template-detail-tag" style="background:linear-gradient(135deg,var(--rose),var(--peach));color:white;border:none">${styleLabels[template.style] || ""}</span>`;
     document.getElementById('templateDetailDesc').textContent = template.desc;
     document.getElementById('templateDetailFeatures').innerHTML = template.features.map(f => `<li><span>${f.split(' ')[0]}</span> ${f.substring(f.indexOf(' ')+1)}</li>`).join('');
 
