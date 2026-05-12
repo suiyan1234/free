@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>我的手帐 · 旅记</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+<style>
+
+:root{--cream:#FAF8F5;--warm-white:#FDFCFA;--paper:#F5F0EB;--latte:#E8DFD4;--sand:#D4C5B3;--taupe:#B8A99A;--warm-gray:#9A8B7A;--stone:#7A6B5A;--ink:#3D352E;--soft-ink:#5A5045;--rose:#C4A494;--sage:#A8B5A0;--dusty-blue:#94A8B4;--peach:#D4A594;--film-border:#1a1a1a;--shadow-soft:rgba(61,53,46,0.06);--shadow-medium:rgba(61,53,46,0.1);--font-serif:'Noto Serif SC','Georgia',serif;--font-sans:'Noto Sans SC','PingFang SC',sans-serif;--font-display:'ZCOOL XiaoWei','Noto Serif SC',serif}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--sand);border-radius:2px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gentlePulse{0%,100%{opacity:0.6}50%{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes grain{0%,100%{transform:translate(0,0)}10%{transform:translate(-5%,-10%)}30%{transform:translate(3%,-15%)}50%{transform:translate(12%,9%)}70%{transform:translate(9%,4%)}90%{transform:translate(-1%,7%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.animate-fade{animation:fadeIn 0.8s ease-out forwards}
+.animate-slide{animation:slideUp 0.6s ease-out forwards}
+.noise-overlay{position:fixed;top:-50%;left:-50%;width:200%;height:200%;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;animation:grain 8s steps(10) infinite}
+.auth-overlay{position:fixed;inset:0;background:rgba(250,248,245,0.92);backdrop-filter:blur(20px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.4s ease}
+.auth-overlay.active{opacity:1;pointer-events:all}
+.auth-card{background:var(--warm-white);border-radius:24px;padding:48px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px var(--shadow-medium),0 0 0 1px var(--latte);text-align:center;transform:scale(0.9);transition:transform 0.4s ease}
+.auth-overlay.active .auth-card{transform:scale(1)}
+.auth-card .logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--rose),var(--sage));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px}
+.auth-card h2{font-family:var(--font-display);font-size:28px;font-weight:400;margin-bottom:8px;color:var(--ink)}
+.auth-card .subtitle{font-size:14px;color:var(--warm-gray);margin-bottom:32px;line-height:1.6}
+.auth-input{width:100%;padding:14px 18px;border:1.5px solid var(--latte);border-radius:14px;font-size:15px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);margin-bottom:12px;transition:all 0.3s ease;outline:none}
+.auth-input:focus{border-color:var(--rose);background:var(--warm-white);box-shadow:0 0 0 4px rgba(196,164,148,0.1)}
+.auth-input::placeholder{color:var(--sand)}
+.auth-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all 0.3s ease;margin-top:8px}
+.auth-btn-primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.auth-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,164,148,0.3)}
+.auth-btn-secondary{background:transparent;color:var(--warm-gray);border:1.5px solid var(--latte);margin-top:12px}
+.auth-btn-secondary:hover{border-color:var(--sand);color:var(--stone)}
+.auth-divider{display:flex;align-items:center;gap:16px;margin:24px 0;color:var(--sand);font-size:13px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--latte)}
+.auth-switch{margin-top:20px;font-size:13px;color:var(--warm-gray)}
+.auth-switch a{color:var(--rose);text-decoration:none;font-weight:500;cursor:pointer}
+.auth-error{color:#c44;font-size:13px;margin-top:8px;min-height:20px}
+.app-container{max-width:1200px;margin:0 auto;padding:0 16px}
+.header{position:sticky;top:0;z-index:100;background:rgba(250,248,245,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--latte);padding:12px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--rose),var(--sage));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:2px}
+.logo-tag{font-size:10px;color:var(--warm-gray);letter-spacing:3px;margin-top:-2px}
+.header-actions{display:flex;align-items:center;gap:12px}
+.header-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-family:var(--font-sans);border:none;cursor:pointer;transition:all 0.3s ease;background:transparent;color:var(--soft-ink)}
+.header-btn:hover{background:var(--latte)}
+.header-btn.primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.header-btn.primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,164,148,0.25)}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--sage),var(--dusty-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:500;cursor:pointer;border:2px solid var(--warm-white);box-shadow:0 2px 8px var(--shadow-soft)}
+.hero{padding:60px 0 40px;text-align:center;position:relative}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:var(--paper);border-radius:20px;font-size:12px;color:var(--warm-gray);letter-spacing:1px;margin-bottom:24px;border:1px solid var(--latte)}
+.hero-badge .dot{width:6px;height:6px;background:var(--sage);border-radius:50%;animation:gentlePulse 2s ease infinite}
+.hero h1{font-family:var(--font-display);font-size:clamp(32px,5vw,56px);font-weight:400;line-height:1.3;color:var(--ink);margin-bottom:16px;letter-spacing:2px}
+.hero h1 .highlight{background:linear-gradient(135deg,var(--rose),var(--peach));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{font-size:15px;color:var(--warm-gray);max-width:520px;margin:0 auto 32px;line-height:1.8;font-weight:300}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta-btn{padding:14px 32px;border-radius:30px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all 0.3s ease;border:none;display:inline-flex;align-items:center;gap:8px}
+.cta-btn-main{background:linear-gradient(135deg,var(--rose),var(--peach));color:white;box-shadow:0 4px 20px rgba(196,164,148,0.25)}
+.cta-btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(196,164,148,0.35)}
+.cta-btn-ghost{background:transparent;color:var(--soft-ink);border:1.5px solid var(--latte)}
+.cta-btn-ghost:hover{border-color:var(--sand);background:var(--paper)}
+.templates-section{padding:40px 0 60px}
+.section-header{text-align:center;margin-bottom:40px}
+.section-header h2{font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink);margin-bottom:8px}
+.section-header p{font-size:14px;color:var(--warm-gray)}
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px}
+.template-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.template-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px var(--shadow-medium)}
+.template-preview{height:200px;position:relative;overflow:hidden;background:var(--paper)}
+.template-preview img{width:100%;height:100%;object-fit:cover;transition:transform 0.6s ease}
+.template-card:hover .template-preview img{transform:scale(1.05)}
+.template-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(61,53,46,0.4),transparent);display:flex;align-items:flex-end;padding:16px;opacity:0;transition:opacity 0.3s ease}
+.template-card:hover .template-overlay{opacity:1}
+.template-tag{padding:4px 12px;background:rgba(255,255,255,0.9);border-radius:12px;font-size:11px;color:var(--soft-ink);backdrop-filter:blur(10px)}
+.template-info{padding:20px}
+.template-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.template-info p{font-size:13px;color:var(--warm-gray);line-height:1.5}
+.template-meta{display:flex;gap:12px;margin-top:12px;font-size:12px;color:var(--sand)}
+.template-meta span{display:flex;align-items:center;gap:4px}
+.editor-section{padding:20px 0 60px;display:none}
+.editor-section.active{display:block;animation:fadeIn 0.5s ease}
+.editor-layout{display:grid;grid-template-columns:1fr 380px;gap:24px}
+@media(max-width:900px){.editor-layout{grid-template-columns:1fr}}
+.canvas-area{background:var(--paper);border-radius:20px;padding:40px;min-height:600px;display:flex;align-items:center;justify-content:center;position:relative;border:1px solid var(--latte)}
+.canvas-page{width:100%;max-width:500px;background:var(--warm-white);border-radius:16px;box-shadow:0 8px 32px var(--shadow-medium);overflow:hidden;position:relative}
+.page-header{padding:24px 24px 0}
+.page-date{font-family:var(--font-serif);font-size:12px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:4px}
+.page-title{font-family:var(--font-display);font-size:22px;color:var(--ink);margin-bottom:8px}
+.page-weather{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sand)}
+.page-content{padding:20px 24px}
+.photo-grid{display:grid;gap:8px;margin-bottom:16px}
+.photo-grid.two-col{grid-template-columns:1fr 1fr}
+.photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
+.photo-grid.single{grid-template-columns:1fr}
+.photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte);aspect-ratio:1}
+.photo-item img{width:100%;height:100%;object-fit:cover}
+.photo-item.film-frame{border:8px solid var(--film-border);border-radius:4px}
+.photo-item.film-frame::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border:1px solid rgba(255,255,255,0.1);pointer-events:none}
+.photo-caption{position:absolute;bottom:0;left:0;right:0;padding:20px 8px 8px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);color:white;font-size:11px;font-family:var(--font-serif)}
+.page-text{font-family:var(--font-serif);font-size:14px;line-height:1.9;color:var(--soft-ink);margin-bottom:16px}
+.page-text .highlight{background:linear-gradient(to bottom,transparent 60%,rgba(196,164,148,0.3) 60%)}
+.page-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.page-tag{padding:4px 12px;background:var(--paper);border-radius:12px;font-size:12px;color:var(--warm-gray);border:1px solid var(--latte)}
+.page-footer{padding:0 24px 24px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--sand)}
+.page-stamp{padding:4px 12px;border:1.5px solid var(--rose);border-radius:4px;font-family:var(--font-serif);font-size:11px;color:var(--rose);transform:rotate(-3deg)}
+.editor-sidebar{display:flex;flex-direction:column;gap:16px}
+.sidebar-card{background:var(--warm-white);border-radius:16px;padding:20px;border:1px solid var(--latte)}
+.sidebar-card h3{font-family:var(--font-serif);font-size:15px;font-weight:500;margin-bottom:16px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.sidebar-card h3 .icon{font-size:18px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:var(--warm-gray);margin-bottom:6px;letter-spacing:0.5px}
+.form-input,.form-textarea,.form-select{width:100%;padding:10px 14px;border:1.5px solid var(--latte);border-radius:12px;font-size:14px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);outline:none;transition:all 0.3s ease}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.1)}
+.form-textarea{min-height:80px;resize:vertical}
+.upload-area{border:2px dashed var(--latte);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all 0.3s ease;background:var(--cream)}
+.upload-area:hover{border-color:var(--rose);background:rgba(196,164,148,0.05)}
+.upload-area .upload-icon{font-size:32px;margin-bottom:8px}
+.upload-area p{font-size:13px;color:var(--warm-gray)}
+.upload-area small{font-size:11px;color:var(--sand)}
+.photo-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;background:var(--latte)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;cursor:pointer;opacity:0;transition:opacity 0.2s}
+.photo-thumb:hover .remove{opacity:1}
+.theme-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.theme-option{aspect-ratio:1;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all 0.3s ease;position:relative}
+.theme-option:hover{transform:scale(1.05)}
+.theme-option.active{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.2)}
+.theme-option .theme-name{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.layout-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.layout-option{padding:10px;border:1.5px solid var(--latte);border-radius:10px;text-align:center;cursor:pointer;font-size:12px;color:var(--warm-gray);transition:all 0.3s ease}
+.layout-option:hover{border-color:var(--sand)}
+.layout-option.active{border-color:var(--rose);background:rgba(196,164,148,0.05);color:var(--rose)}
+.action-buttons{display:flex;gap:10px}
+.action-btn{flex:1;padding:12px;border-radius:12px;font-size:13px;font-family:var(--font-sans);font-weight:500;cursor:pointer;border:none;transition:all 0.3s ease;display:flex;align-items:center;justify-content:center;gap:6px}
+.action-btn-export{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.action-btn-export:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,164,148,0.25)}
+.action-btn-save{background:var(--paper);color:var(--soft-ink);border:1.5px solid var(--latte)}
+.action-btn-save:hover{background:var(--latte)}
+.journals-section{padding:20px 0 60px;display:none}
+.journals-section.active{display:block;animation:fadeIn 0.5s ease}
+.journals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.journal-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.journal-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px var(--shadow-medium)}
+.journal-cover{height:180px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--latte),var(--paper))}
+.journal-cover img{width:100%;height:100%;object-fit:cover}
+.journal-cover-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:48px}
+.journal-info{padding:20px}
+.journal-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.journal-info .journal-meta{font-size:12px;color:var(--warm-gray);margin-bottom:12px}
+.journal-info .journal-desc{font-size:13px;color:var(--soft-ink);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.journal-actions{display:flex;gap:8px;padding:0 20px 20px}
+.journal-action-btn{padding:6px 14px;border-radius:10px;font-size:12px;border:none;cursor:pointer;transition:all 0.2s ease;background:var(--paper);color:var(--soft-ink)}
+.journal-action-btn:hover{background:var(--latte)}
+.footer{padding:40px 0;text-align:center;border-top:1px solid var(--latte);margin-top:40px}
+.footer p{font-size:12px;color:var(--sand);letter-spacing:1px}
+.footer .heart{color:var(--rose)}
+@media(max-width:640px){.hero{padding:40px 0 30px}.hero h1{font-size:28px}.templates-grid{grid-template-columns:1fr}.editor-layout{grid-template-columns:1fr}.canvas-area{padding:20px;min-height:auto}.canvas-page{max-width:100%}.header-inner{padding:0 12px}.logo-text{font-size:18px}.journals-grid{grid-template-columns:1fr}.auth-card{padding:32px 24px}}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:white;padding:12px 24px;border-radius:12px;font-size:14px;z-index:2000;opacity:0;transition:all 0.4s ease;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.loading-overlay{position:fixed;inset:0;background:rgba(250,248,245,0.9);backdrop-filter:blur(10px);z-index:3000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
+.loading-overlay.active{opacity:1;pointer-events:all}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--latte);border-top-color:var(--rose);border-radius:50%;animation:spin 1s linear infinite}
+.loading-text{font-size:14px;color:var(--warm-gray);font-family:var(--font-serif)}
+.sticker-palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sticker-item{width:40px;height:40px;border-radius:10px;background:var(--cream);border:1.5px solid var(--latte);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:all 0.2s ease}
+.sticker-item:hover{transform:scale(1.1);border-color:var(--rose);background:var(--warm-white)}
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5}
+.empty-state h3{font-family:var(--font-serif);font-size:18px;color:var(--soft-ink);margin-bottom:8px}
+.empty-state p{font-size:14px;color:var(--warm-gray);margin-bottom:20px}
+.tabs{display:flex;gap:4px;background:var(--paper);padding:4px;border-radius:14px;margin-bottom:24px;width:fit-content}
+.tab{padding:8px 20px;border-radius:10px;font-size:14px;font-family:var(--font-sans);cursor:pointer;transition:all 0.3s ease;border:none;background:transparent;color:var(--warm-gray)}
+.tab.active{background:var(--warm-white);color:var(--ink);box-shadow:0 2px 8px var(--shadow-soft)}
+.tab:hover:not(.active){color:var(--soft-ink)}
+.divider{height:1px;background:linear-gradient(to right,transparent,var(--latte),transparent);margin:40px 0}
+.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--peach));color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(196,164,148,0.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;animation:float 3s ease infinite}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(196,164,148,0.5)}
+@media(min-width:901px){.fab{display:none}}
+
+/* 我的手帐页面专属样式 */
+.my-journals-page{padding:20px 0 60px;max-width:1200px;margin:0 auto;padding:0 16px}
+.page-header-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+.page-header-bar h1{font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink);letter-spacing:2px}
+.page-header-bar .stats{display:flex;gap:16px;font-size:13px;color:var(--warm-gray)}
+.page-header-bar .stats span{display:flex;align-items:center;gap:6px}
+.page-header-bar .stats .stat-num{font-family:var(--font-serif);font-size:18px;color:var(--rose);font-weight:600}
+.journals-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.journals-search{flex:1;min-width:200px;position:relative}
+.journals-search input{width:100%;padding:10px 16px 10px 40px;border:1.5px solid var(--latte);border-radius:12px;font-size:14px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);outline:none;transition:all 0.3s ease}
+.journals-search input:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.1)}
+.journals-search .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--sand)}
+.journals-filter{display:flex;gap:8px}
+.journals-filter-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-family:var(--font-sans);border:none;cursor:pointer;transition:all 0.3s ease;background:var(--paper);color:var(--soft-ink)}
+.journals-filter-btn:hover{background:var(--latte)}
+.journals-filter-btn.active{background:var(--rose);color:white}
+.journals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.journal-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.journal-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px var(--shadow-medium)}
+.journal-cover{height:200px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--latte),var(--paper))}
+.journal-cover img{width:100%;height:100%;object-fit:cover;transition:transform 0.6s ease}
+.journal-card:hover .journal-cover img{transform:scale(1.05)}
+.journal-cover-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:64px}
+.journal-info{padding:20px}
+.journal-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.journal-meta{font-size:12px;color:var(--warm-gray);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.journal-meta .meta-dot{width:4px;height:4px;background:var(--sand);border-radius:50%}
+.journal-desc{font-size:13px;color:var(--soft-ink);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:12px}
+.journal-tags{display:flex;gap:6px;flex-wrap:wrap}
+.journal-tag{padding:3px 10px;background:var(--paper);border-radius:10px;font-size:11px;color:var(--warm-gray);border:1px solid var(--latte)}
+.journal-actions{display:flex;gap:8px;padding:0 20px 20px}
+.journal-action-btn{padding:8px 16px;border-radius:10px;font-size:12px;border:none;cursor:pointer;transition:all 0.2s ease;background:var(--paper);color:var(--soft-ink);display:flex;align-items:center;gap:4px}
+.journal-action-btn:hover{background:var(--latte)}
+.journal-action-btn.delete:hover{background:#fee;color:#c44}
+.empty-state{text-align:center;padding:80px 20px;background:var(--warm-white);border-radius:24px;border:1px solid var(--latte);margin:20px 0}
+.empty-state .empty-icon{font-size:64px;margin-bottom:20px;opacity:0.4}
+.empty-state h3{font-family:var(--font-serif);font-size:20px;color:var(--soft-ink);margin-bottom:10px}
+.empty-state p{font-size:14px;color:var(--warm-gray);margin-bottom:24px;line-height:1.7;max-width:400px;margin-left:auto;margin-right:auto}
+.empty-state .cta-btn{padding:14px 32px}
+.breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--warm-gray)}
+.breadcrumb a{color:var(--warm-gray);text-decoration:none;transition:color 0.2s}
+.breadcrumb a:hover{color:var(--rose)}
+.breadcrumb .sep{color:var(--sand)}
+.breadcrumb .current{color:var(--soft-ink)}
+.load-more{text-align:center;margin-top:40px}
+.load-more-btn{padding:12px 32px;border-radius:20px;font-size:14px;font-family:var(--font-sans);border:1.5px solid var(--latte);background:var(--warm-white);color:var(--soft-ink);cursor:pointer;transition:all 0.3s ease}
+.load-more-btn:hover{border-color:var(--rose);color:var(--rose)}
+.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--peach));color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(196,164,148,0.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;animation:float 3s ease infinite;text-decoration:none}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(196,164,148,0.5)}
+@media(max-width:640px){.journals-grid{grid-template-columns:1fr}.page-header-bar h1{font-size:22px}.journals-toolbar{flex-direction:column;align-items:stretch}}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div class="noise-overlay"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-spinner"></div>
+<div class="loading-text">正在整理旅行记忆...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<header class="header">
+<div class="header-inner">
+<a href="index.html" class="logo">
+<div class="logo-mark">🌿</div>
+<div><div class="logo-text">旅记</div><div class="logo-tag">TRAVEL PLOG</div></div>
+</a>
+<div class="header-actions">
+<button class="header-btn" onclick="goToMyJournals()">我的手帐</button>
+<button class="header-btn primary" onclick="goToEditor()">新建手帐</button>
+<div class="user-avatar" id="userAvatar" style="display:none" onclick="toggleUserMenu()">?</div>
+</div>
+</div>
+</header>
+
+<div class="my-journals-page">
+<div class="breadcrumb">
+<a href="index.html">🏠 首页</a><span class="sep">/</span><span class="current">📖 我的手帐</span>
+</div>
+
+<div class="page-header-bar">
+<h1>我的手帐</h1>
+<div class="stats">
+<span>📔 <span class="stat-num" id="statTotal">0</span> 本手帐</span>
+<span>🌍 <span class="stat-num" id="statPlaces">0</span> 个地点</span>
+<span>📸 <span class="stat-num" id="statPhotos">0</span> 张照片</span>
+</div>
+</div>
+
+<div class="journals-toolbar">
+<div class="journals-search">
+<span class="search-icon">🔍</span>
+<input type="text" placeholder="搜索手帐标题、地点、标签..." id="searchInput" oninput="handleSearch()">
+</div>
+<div class="journals-filter">
+<button class="journals-filter-btn active" onclick="filterJournals('all',this)">全部</button>
+<button class="journals-filter-btn" onclick="filterJournals('recent',this)">最近</button>
+<button class="journals-filter-btn" onclick="filterJournals('month',this)">本月</button>
+</div>
+</div>
+
+<div id="journalsContainer">
+<!-- 动态内容 -->
+</div>
+</div>
+
+<footer class="footer"><p>旅记 Travel PLOG · 让每一次出发都值得被珍藏 <span class="heart">❤</span></p></footer>
+
+<a href="editor.html" class="fab" onclick="clearEditorState()">+</a>
+
+<script>
+// ==================== 配置区 ====================
+const SUPABASE_URL = 'https://yrpjgzoiaipiutbtnjle.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MKvv219kLNsN1lTGvxbWzg_vUJpu4Ky';
+
+let supabase = null;
+let currentUser = null;
+let useLocalMode = false;
+let journals = [];
+let filteredJournals = [];
+
+// ==================== 本地存储工具 ====================
+const Storage = {
+    getUsers() {
+        try { return JSON.parse(localStorage.getItem('travel_users') || '[]'); }
+        catch(e) { return []; }
+    },
+    setUsers(users) {
+        localStorage.setItem('travel_users', JSON.stringify(users));
+    },
+    getJournals(userId) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            return all[userId] || [];
+        } catch(e) { return []; }
+    },
+    setJournals(userId, data) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            all[userId] = data;
+            localStorage.setItem('travel_journals', JSON.stringify(all));
+        } catch(e) { console.error('保存失败:', e); }
+    },
+    getCurrentUser() {
+        try { return JSON.parse(localStorage.getItem('travel_current_user') || 'null'); }
+        catch(e) { return null; }
+    },
+    setCurrentUser(user) {
+        if (user) {
+            localStorage.setItem('travel_current_user', JSON.stringify(user));
+        } else {
+            localStorage.removeItem('travel_current_user');
+        }
+    },
+    setEditingJournal(id) {
+        localStorage.setItem('travel_editing_journal', id);
+    },
+    clearEditingJournal() {
+        localStorage.removeItem('travel_editing_journal');
+    },
+    clearSelectedTemplate() {
+        localStorage.removeItem('travel_selected_template');
+    }
+};
+
+// ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    initSupabase();
+    const savedUser = Storage.getCurrentUser();
+    if (savedUser) {
+        currentUser = savedUser;
+        updateUserUI();
+        loadJournals();
+    } else {
+        window.location.href = 'index.html';
+    }
+});
+
+function initSupabase() {
+    if (SUPABASE_URL.includes('your-project') || SUPABASE_KEY.includes('your-anon')) {
+        useLocalMode = true;
+        return false;
+    }
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        useLocalMode = false;
+        return true;
+    } catch (e) {
+        useLocalMode = true;
+        return false;
+    }
+}
+
+// ==================== 页面导航 ====================
+function goToEditor() {
+    Storage.clearEditingJournal();
+    Storage.clearSelectedTemplate();
+    window.location.href = 'editor.html';
+}
+
+function goToMyJournals() {
+    window.location.href = 'my-journals.html';
+}
+
+function clearEditorState() {
+    Storage.clearEditingJournal();
+    Storage.clearSelectedTemplate();
+}
+
+// ==================== 加载手帐 ====================
+async function loadJournals() {
+    if (!currentUser) return;
+
+    showLoading(true);
+    try {
+        if (useLocalMode) {
+            await new Promise(r => setTimeout(r, 200));
+            journals = Storage.getJournals(currentUser.id);
+        } else if (supabase) {
+            const { data, error } = await supabase
+                .from('journals')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            journals = data || [];
+        }
+
+        if (!Array.isArray(journals)) journals = [];
+        filteredJournals = [...journals];
+        renderJournals();
+        updateStats();
+    } catch (err) {
+        console.error('加载失败:', err);
+        journals = [];
+        filteredJournals = [];
+        renderJournals();
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==================== 渲染手帐 ====================
+function renderJournals() {
+    const container = document.getElementById('journalsContainer');
+
+    if (filteredJournals.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📔</div>
+                <h3>还没有手帐</h3>
+                <p>每一次旅行都值得被记录。<br>点击右下角按钮，开始创建你的第一本旅行手帐吧。</p>
+                <button class="cta-btn cta-btn-main" onclick="goToEditor()">
+                    <span>✨</span> 创建第一本手帐
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="journals-grid">
+            ${filteredJournals.map(j => renderJournalCard(j)).join('')}
+        </div>
+    `;
+}
+
+function renderJournalCard(j) {
+    const dateStr = j.date || (j.created_at ? j.created_at.split('T')[0] : '');
+    const tags = j.tags || [];
+    const photoCount = j.photos ? j.photos.length : 0;
+
+    return `
+        <div class="journal-card">
+            <div class="journal-cover" onclick="viewJournalDetail('${j.id}')">
+                ${j.cover ? `<img src="${j.cover}" alt="${j.title}" loading="lazy">` : `<div class="journal-cover-placeholder">🌿</div>`}
+            </div>
+            <div class="journal-info" onclick="viewJournalDetail('${j.id}')">
+                <h3>${j.title || '未命名旅行'}</h3>
+                <div class="journal-meta">
+                    <span>📅 ${dateStr}</span>
+                    <span class="meta-dot"></span>
+                    <span>📍 ${j.location || '未知地点'}</span>
+                    ${photoCount > 0 ? `<span class="meta-dot"></span><span>📸 ${photoCount} 张</span>` : ''}
+                </div>
+                <div class="journal-desc">${j.description || j.desc || '暂无描述'}</div>
+                ${tags.length > 0 ? `<div class="journal-tags">${tags.slice(0, 3).map(t => `<span class="journal-tag">#${t}</span>`).join('')}</div>` : ''}
+            </div>
+            <div class="journal-actions">
+                <button class="journal-action-btn" onclick="event.stopPropagation();editJournal('${j.id}')">✏️ 编辑</button>
+                <button class="journal-action-btn" onclick="event.stopPropagation();exportJournal('${j.id}')">📤 导出</button>
+                <button class="journal-action-btn delete" onclick="event.stopPropagation();deleteJournal('${j.id}')">🗑️ 删除</button>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== 手帐操作 ====================
+function viewJournalDetail(id) {
+    const journal = journals.find(j => j.id === id);
+    if (!journal) {
+        showToast('手帐不存在');
+        return;
+    }
+    // 存储当前查看的手帐ID，跳转到详情页
+    localStorage.setItem('travel_viewing_journal', id);
+    window.location.href = 'journal-detail.html';
+}
+
+function editJournal(id) {
+    Storage.setEditingJournal(id);
+    window.location.href = 'editor.html';
+}
+
+function exportJournal(id) {
+    const journal = journals.find(j => j.id === id);
+    if (!journal) return;
+    // 简单导出：复制数据到剪贴板或提示
+    showToast(`「${journal.title}」导出功能开发中...`);
+}
+
+async function deleteJournal(id) {
+    if (!confirm('确定要删除这本手帐吗？此操作不可恢复。')) return;
+
+    showLoading(true);
+    try {
+        if (useLocalMode) {
+            journals = journals.filter(j => j.id !== id);
+            Storage.setJournals(currentUser.id, journals);
+        } else if (supabase) {
+            const { error } = await supabase.from('journals').delete().eq('id', id).eq('user_id', currentUser.id);
+            if (error) throw error;
+            journals = journals.filter(j => j.id !== id);
+        }
+        filteredJournals = [...journals];
+        renderJournals();
+        updateStats();
+        showToast('手帐已删除');
+    } catch (err) {
+        showToast('删除失败: ' + err.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==================== 搜索和筛选 ====================
+function handleSearch() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (!query) {
+        filteredJournals = [...journals];
+    } else {
+        filteredJournals = journals.filter(j => {
+            const title = (j.title || '').toLowerCase();
+            const location = (j.location || '').toLowerCase();
+            const desc = (j.description || j.desc || '').toLowerCase();
+            const tags = (j.tags || []).join(' ').toLowerCase();
+            return title.includes(query) || location.includes(query) || desc.includes(query) || tags.includes(query);
+        });
+    }
+    renderJournals();
+}
+
+function filterJournals(type, el) {
+    document.querySelectorAll('.journals-filter-btn').forEach(btn => btn.classList.remove('active'));
+    el.classList.add('active');
+
+    const now = new Date();
+    if (type === 'all') {
+        filteredJournals = [...journals];
+    } else if (type === 'recent') {
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        filteredJournals = journals.filter(j => {
+            const d = new Date(j.date || j.created_at);
+            return d >= sevenDaysAgo;
+        });
+    } else if (type === 'month') {
+        const thisMonth = now.getMonth();
+        const thisYear = now.getFullYear();
+        filteredJournals = journals.filter(j => {
+            const d = new Date(j.date || j.created_at);
+            return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+        });
+    }
+    renderJournals();
+}
+
+// ==================== 统计 ====================
+function updateStats() {
+    const total = journals.length;
+    const places = new Set(journals.map(j => j.location).filter(Boolean)).size;
+    const photos = journals.reduce((sum, j) => sum + (j.photos ? j.photos.length : 0), 0);
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statPlaces').textContent = places;
+    document.getElementById('statPhotos').textContent = photos;
+}
+
+// ==================== 用户UI ====================
+function updateUserUI() {
+    const avatar = document.getElementById('userAvatar');
+    if (currentUser) {
+        avatar.style.display = 'flex';
+        avatar.textContent = (currentUser.name || currentUser.email).charAt(0).toUpperCase();
+    } else {
+        avatar.style.display = 'none';
+    }
+}
+
+function toggleUserMenu() {
+    if (confirm('确定要退出登录吗？')) {
+        if (!useLocalMode && supabase) supabase.auth.signOut();
+        currentUser = null;
+        Storage.setCurrentUser(null);
+        window.location.href = 'index.html';
+    }
+}
+
+// ==================== 工具函数 ====================
+function showLoading(show) {
+    document.getElementById('loadingOverlay').classList.toggle('active', show);
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
