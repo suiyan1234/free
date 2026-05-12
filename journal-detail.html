@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>手帐详情 · 旅记</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+
+:root{--cream:#FAF8F5;--warm-white:#FDFCFA;--paper:#F5F0EB;--latte:#E8DFD4;--sand:#D4C5B3;--taupe:#B8A99A;--warm-gray:#9A8B7A;--stone:#7A6B5A;--ink:#3D352E;--soft-ink:#5A5045;--rose:#C4A494;--sage:#A8B5A0;--dusty-blue:#94A8B4;--peach:#D4A594;--film-border:#1a1a1a;--shadow-soft:rgba(61,53,46,0.06);--shadow-medium:rgba(61,53,46,0.1);--font-serif:'Noto Serif SC','Georgia',serif;--font-sans:'Noto Sans SC','PingFang SC',sans-serif;--font-display:'ZCOOL XiaoWei','Noto Serif SC',serif}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--sand);border-radius:2px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gentlePulse{0%,100%{opacity:0.6}50%{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes grain{0%,100%{transform:translate(0,0)}10%{transform:translate(-5%,-10%)}30%{transform:translate(3%,-15%)}50%{transform:translate(12%,9%)}70%{transform:translate(9%,4%)}90%{transform:translate(-1%,7%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.animate-fade{animation:fadeIn 0.8s ease-out forwards}
+.animate-slide{animation:slideUp 0.6s ease-out forwards}
+.noise-overlay{position:fixed;top:-50%;left:-50%;width:200%;height:200%;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;animation:grain 8s steps(10) infinite}
+.auth-overlay{position:fixed;inset:0;background:rgba(250,248,245,0.92);backdrop-filter:blur(20px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.4s ease}
+.auth-overlay.active{opacity:1;pointer-events:all}
+.auth-card{background:var(--warm-white);border-radius:24px;padding:48px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px var(--shadow-medium),0 0 0 1px var(--latte);text-align:center;transform:scale(0.9);transition:transform 0.4s ease}
+.auth-overlay.active .auth-card{transform:scale(1)}
+.auth-card .logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--rose),var(--sage));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px}
+.auth-card h2{font-family:var(--font-display);font-size:28px;font-weight:400;margin-bottom:8px;color:var(--ink)}
+.auth-card .subtitle{font-size:14px;color:var(--warm-gray);margin-bottom:32px;line-height:1.6}
+.auth-input{width:100%;padding:14px 18px;border:1.5px solid var(--latte);border-radius:14px;font-size:15px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);margin-bottom:12px;transition:all 0.3s ease;outline:none}
+.auth-input:focus{border-color:var(--rose);background:var(--warm-white);box-shadow:0 0 0 4px rgba(196,164,148,0.1)}
+.auth-input::placeholder{color:var(--sand)}
+.auth-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all 0.3s ease;margin-top:8px}
+.auth-btn-primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.auth-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,164,148,0.3)}
+.auth-btn-secondary{background:transparent;color:var(--warm-gray);border:1.5px solid var(--latte);margin-top:12px}
+.auth-btn-secondary:hover{border-color:var(--sand);color:var(--stone)}
+.auth-divider{display:flex;align-items:center;gap:16px;margin:24px 0;color:var(--sand);font-size:13px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--latte)}
+.auth-switch{margin-top:20px;font-size:13px;color:var(--warm-gray)}
+.auth-switch a{color:var(--rose);text-decoration:none;font-weight:500;cursor:pointer}
+.auth-error{color:#c44;font-size:13px;margin-top:8px;min-height:20px}
+.app-container{max-width:1200px;margin:0 auto;padding:0 16px}
+.header{position:sticky;top:0;z-index:100;background:rgba(250,248,245,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--latte);padding:12px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--rose),var(--sage));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:2px}
+.logo-tag{font-size:10px;color:var(--warm-gray);letter-spacing:3px;margin-top:-2px}
+.header-actions{display:flex;align-items:center;gap:12px}
+.header-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-family:var(--font-sans);border:none;cursor:pointer;transition:all 0.3s ease;background:transparent;color:var(--soft-ink)}
+.header-btn:hover{background:var(--latte)}
+.header-btn.primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.header-btn.primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,164,148,0.25)}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--sage),var(--dusty-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:500;cursor:pointer;border:2px solid var(--warm-white);box-shadow:0 2px 8px var(--shadow-soft)}
+.hero{padding:60px 0 40px;text-align:center;position:relative}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:var(--paper);border-radius:20px;font-size:12px;color:var(--warm-gray);letter-spacing:1px;margin-bottom:24px;border:1px solid var(--latte)}
+.hero-badge .dot{width:6px;height:6px;background:var(--sage);border-radius:50%;animation:gentlePulse 2s ease infinite}
+.hero h1{font-family:var(--font-display);font-size:clamp(32px,5vw,56px);font-weight:400;line-height:1.3;color:var(--ink);margin-bottom:16px;letter-spacing:2px}
+.hero h1 .highlight{background:linear-gradient(135deg,var(--rose),var(--peach));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{font-size:15px;color:var(--warm-gray);max-width:520px;margin:0 auto 32px;line-height:1.8;font-weight:300}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta-btn{padding:14px 32px;border-radius:30px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all 0.3s ease;border:none;display:inline-flex;align-items:center;gap:8px}
+.cta-btn-main{background:linear-gradient(135deg,var(--rose),var(--peach));color:white;box-shadow:0 4px 20px rgba(196,164,148,0.25)}
+.cta-btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(196,164,148,0.35)}
+.cta-btn-ghost{background:transparent;color:var(--soft-ink);border:1.5px solid var(--latte)}
+.cta-btn-ghost:hover{border-color:var(--sand);background:var(--paper)}
+.templates-section{padding:40px 0 60px}
+.section-header{text-align:center;margin-bottom:40px}
+.section-header h2{font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink);margin-bottom:8px}
+.section-header p{font-size:14px;color:var(--warm-gray)}
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px}
+.template-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.template-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px var(--shadow-medium)}
+.template-preview{height:200px;position:relative;overflow:hidden;background:var(--paper)}
+.template-preview img{width:100%;height:100%;object-fit:cover;transition:transform 0.6s ease}
+.template-card:hover .template-preview img{transform:scale(1.05)}
+.template-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(61,53,46,0.4),transparent);display:flex;align-items:flex-end;padding:16px;opacity:0;transition:opacity 0.3s ease}
+.template-card:hover .template-overlay{opacity:1}
+.template-tag{padding:4px 12px;background:rgba(255,255,255,0.9);border-radius:12px;font-size:11px;color:var(--soft-ink);backdrop-filter:blur(10px)}
+.template-info{padding:20px}
+.template-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.template-info p{font-size:13px;color:var(--warm-gray);line-height:1.5}
+.template-meta{display:flex;gap:12px;margin-top:12px;font-size:12px;color:var(--sand)}
+.template-meta span{display:flex;align-items:center;gap:4px}
+.editor-section{padding:20px 0 60px;display:none}
+.editor-section.active{display:block;animation:fadeIn 0.5s ease}
+.editor-layout{display:grid;grid-template-columns:1fr 380px;gap:24px}
+@media(max-width:900px){.editor-layout{grid-template-columns:1fr}}
+.canvas-area{background:var(--paper);border-radius:20px;padding:40px;min-height:600px;display:flex;align-items:center;justify-content:center;position:relative;border:1px solid var(--latte)}
+.canvas-page{width:100%;max-width:500px;background:var(--warm-white);border-radius:16px;box-shadow:0 8px 32px var(--shadow-medium);overflow:hidden;position:relative}
+.page-header{padding:24px 24px 0}
+.page-date{font-family:var(--font-serif);font-size:12px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:4px}
+.page-title{font-family:var(--font-display);font-size:22px;color:var(--ink);margin-bottom:8px}
+.page-weather{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sand)}
+.page-content{padding:20px 24px}
+.photo-grid{display:grid;gap:8px;margin-bottom:16px}
+.photo-grid.two-col{grid-template-columns:1fr 1fr}
+.photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
+.photo-grid.single{grid-template-columns:1fr}
+.photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte);aspect-ratio:1}
+.photo-item img{width:100%;height:100%;object-fit:cover}
+.photo-item.film-frame{border:8px solid var(--film-border);border-radius:4px}
+.photo-item.film-frame::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border:1px solid rgba(255,255,255,0.1);pointer-events:none}
+.photo-caption{position:absolute;bottom:0;left:0;right:0;padding:20px 8px 8px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);color:white;font-size:11px;font-family:var(--font-serif)}
+.page-text{font-family:var(--font-serif);font-size:14px;line-height:1.9;color:var(--soft-ink);margin-bottom:16px}
+.page-text .highlight{background:linear-gradient(to bottom,transparent 60%,rgba(196,164,148,0.3) 60%)}
+.page-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.page-tag{padding:4px 12px;background:var(--paper);border-radius:12px;font-size:12px;color:var(--warm-gray);border:1px solid var(--latte)}
+.page-footer{padding:0 24px 24px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--sand)}
+.page-stamp{padding:4px 12px;border:1.5px solid var(--rose);border-radius:4px;font-family:var(--font-serif);font-size:11px;color:var(--rose);transform:rotate(-3deg)}
+.editor-sidebar{display:flex;flex-direction:column;gap:16px}
+.sidebar-card{background:var(--warm-white);border-radius:16px;padding:20px;border:1px solid var(--latte)}
+.sidebar-card h3{font-family:var(--font-serif);font-size:15px;font-weight:500;margin-bottom:16px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.sidebar-card h3 .icon{font-size:18px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:var(--warm-gray);margin-bottom:6px;letter-spacing:0.5px}
+.form-input,.form-textarea,.form-select{width:100%;padding:10px 14px;border:1.5px solid var(--latte);border-radius:12px;font-size:14px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);outline:none;transition:all 0.3s ease}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.1)}
+.form-textarea{min-height:80px;resize:vertical}
+.upload-area{border:2px dashed var(--latte);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all 0.3s ease;background:var(--cream)}
+.upload-area:hover{border-color:var(--rose);background:rgba(196,164,148,0.05)}
+.upload-area .upload-icon{font-size:32px;margin-bottom:8px}
+.upload-area p{font-size:13px;color:var(--warm-gray)}
+.upload-area small{font-size:11px;color:var(--sand)}
+.photo-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;background:var(--latte)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;cursor:pointer;opacity:0;transition:opacity 0.2s}
+.photo-thumb:hover .remove{opacity:1}
+.theme-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.theme-option{aspect-ratio:1;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all 0.3s ease;position:relative}
+.theme-option:hover{transform:scale(1.05)}
+.theme-option.active{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.2)}
+.theme-option .theme-name{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.layout-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.layout-option{padding:10px;border:1.5px solid var(--latte);border-radius:10px;text-align:center;cursor:pointer;font-size:12px;color:var(--warm-gray);transition:all 0.3s ease}
+.layout-option:hover{border-color:var(--sand)}
+.layout-option.active{border-color:var(--rose);background:rgba(196,164,148,0.05);color:var(--rose)}
+.action-buttons{display:flex;gap:10px}
+.action-btn{flex:1;padding:12px;border-radius:12px;font-size:13px;font-family:var(--font-sans);font-weight:500;cursor:pointer;border:none;transition:all 0.3s ease;display:flex;align-items:center;justify-content:center;gap:6px}
+.action-btn-export{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.action-btn-export:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,164,148,0.25)}
+.action-btn-save{background:var(--paper);color:var(--soft-ink);border:1.5px solid var(--latte)}
+.action-btn-save:hover{background:var(--latte)}
+.journals-section{padding:20px 0 60px;display:none}
+.journals-section.active{display:block;animation:fadeIn 0.5s ease}
+.journals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.journal-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.journal-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px var(--shadow-medium)}
+.journal-cover{height:180px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--latte),var(--paper))}
+.journal-cover img{width:100%;height:100%;object-fit:cover}
+.journal-cover-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:48px}
+.journal-info{padding:20px}
+.journal-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.journal-info .journal-meta{font-size:12px;color:var(--warm-gray);margin-bottom:12px}
+.journal-info .journal-desc{font-size:13px;color:var(--soft-ink);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.journal-actions{display:flex;gap:8px;padding:0 20px 20px}
+.journal-action-btn{padding:6px 14px;border-radius:10px;font-size:12px;border:none;cursor:pointer;transition:all 0.2s ease;background:var(--paper);color:var(--soft-ink)}
+.journal-action-btn:hover{background:var(--latte)}
+.footer{padding:40px 0;text-align:center;border-top:1px solid var(--latte);margin-top:40px}
+.footer p{font-size:12px;color:var(--sand);letter-spacing:1px}
+.footer .heart{color:var(--rose)}
+@media(max-width:640px){.hero{padding:40px 0 30px}.hero h1{font-size:28px}.templates-grid{grid-template-columns:1fr}.editor-layout{grid-template-columns:1fr}.canvas-area{padding:20px;min-height:auto}.canvas-page{max-width:100%}.header-inner{padding:0 12px}.logo-text{font-size:18px}.journals-grid{grid-template-columns:1fr}.auth-card{padding:32px 24px}}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:white;padding:12px 24px;border-radius:12px;font-size:14px;z-index:2000;opacity:0;transition:all 0.4s ease;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.loading-overlay{position:fixed;inset:0;background:rgba(250,248,245,0.9);backdrop-filter:blur(10px);z-index:3000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
+.loading-overlay.active{opacity:1;pointer-events:all}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--latte);border-top-color:var(--rose);border-radius:50%;animation:spin 1s linear infinite}
+.loading-text{font-size:14px;color:var(--warm-gray);font-family:var(--font-serif)}
+.sticker-palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sticker-item{width:40px;height:40px;border-radius:10px;background:var(--cream);border:1.5px solid var(--latte);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:all 0.2s ease}
+.sticker-item:hover{transform:scale(1.1);border-color:var(--rose);background:var(--warm-white)}
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5}
+.empty-state h3{font-family:var(--font-serif);font-size:18px;color:var(--soft-ink);margin-bottom:8px}
+.empty-state p{font-size:14px;color:var(--warm-gray);margin-bottom:20px}
+.tabs{display:flex;gap:4px;background:var(--paper);padding:4px;border-radius:14px;margin-bottom:24px;width:fit-content}
+.tab{padding:8px 20px;border-radius:10px;font-size:14px;font-family:var(--font-sans);cursor:pointer;transition:all 0.3s ease;border:none;background:transparent;color:var(--warm-gray)}
+.tab.active{background:var(--warm-white);color:var(--ink);box-shadow:0 2px 8px var(--shadow-soft)}
+.tab:hover:not(.active){color:var(--soft-ink)}
+.divider{height:1px;background:linear-gradient(to right,transparent,var(--latte),transparent);margin:40px 0}
+.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--peach));color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(196,164,148,0.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;animation:float 3s ease infinite}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(196,164,148,0.5)}
+@media(min-width:901px){.fab{display:none}}
+
+/* 详情页面专属样式 */
+.detail-page{padding:20px 0 60px;max-width:800px;margin:0 auto;padding:0 16px}
+.detail-breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:24px;font-size:13px;color:var(--warm-gray)}
+.detail-breadcrumb a{color:var(--warm-gray);text-decoration:none;transition:color 0.2s}
+.detail-breadcrumb a:hover{color:var(--rose)}
+.detail-breadcrumb .sep{color:var(--sand)}
+.detail-breadcrumb .current{color:var(--soft-ink)}
+.detail-hero{position:relative;border-radius:24px;overflow:hidden;margin-bottom:32px;background:linear-gradient(135deg,var(--latte),var(--paper));min-height:300px}
+.detail-hero img{width:100%;height:400px;object-fit:cover;display:block}
+.detail-hero-placeholder{display:flex;align-items:center;justify-content:center;height:300px;font-size:80px}
+.detail-hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(61,53,46,0.7) 0%,transparent 50%);display:flex;align-items:flex-end;padding:32px}
+.detail-hero-content{color:white;position:relative;z-index:2}
+.detail-hero-content h1{font-family:var(--font-display);font-size:clamp(24px,4vw,36px);font-weight:400;margin-bottom:12px;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.detail-hero-meta{display:flex;gap:16px;font-size:14px;opacity:0.9;flex-wrap:wrap}
+.detail-hero-meta span{display:flex;align-items:center;gap:6px}
+.detail-body{background:var(--warm-white);border-radius:24px;padding:32px;border:1px solid var(--latte);margin-bottom:24px}
+.detail-section{margin-bottom:28px}
+.detail-section:last-child{margin-bottom:0}
+.detail-section h3{font-family:var(--font-serif);font-size:14px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:12px;text-transform:uppercase}
+.detail-text{font-family:var(--font-serif);font-size:16px;line-height:2;color:var(--soft-ink);white-space:pre-wrap}
+.detail-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.detail-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;transition:transform 0.3s ease;cursor:pointer}
+.detail-photos img:hover{transform:scale(1.03)}
+.detail-tags{display:flex;flex-wrap:wrap;gap:8px}
+.detail-tag{padding:6px 14px;background:var(--paper);border-radius:16px;font-size:13px;color:var(--soft-ink);border:1px solid var(--latte)}
+.detail-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}
+.detail-info-item{padding:16px;background:var(--cream);border-radius:12px;text-align:center}
+.detail-info-item .label{font-size:11px;color:var(--warm-gray);letter-spacing:1px;margin-bottom:4px}
+.detail-info-item .value{font-family:var(--font-serif);font-size:16px;color:var(--ink);font-weight:500}
+.detail-actions-bar{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap}
+.detail-action-btn{padding:12px 24px;border-radius:14px;font-size:14px;font-family:var(--font-sans);font-weight:500;cursor:pointer;border:none;transition:all 0.3s ease;display:flex;align-items:center;gap:8px}
+.detail-action-btn-primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.detail-action-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,164,148,0.3)}
+.detail-action-btn-secondary{background:var(--paper);color:var(--soft-ink);border:1.5px solid var(--latte)}
+.detail-action-btn-secondary:hover{background:var(--latte)}
+.detail-action-btn-danger{background:transparent;color:#c44;border:1.5px solid #fcc}
+.detail-action-btn-danger:hover{background:#fee}
+.detail-canvas-area{background:var(--paper);border-radius:20px;padding:40px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;border:1px solid var(--latte)}
+.detail-canvas-page{width:100%;max-width:500px;background:var(--warm-white);border-radius:16px;box-shadow:0 8px 32px var(--shadow-medium);overflow:hidden}
+.not-found{text-align:center;padding:100px 20px}
+.not-found .icon{font-size:64px;margin-bottom:20px;opacity:0.4}
+.not-found h2{font-family:var(--font-serif);font-size:22px;color:var(--soft-ink);margin-bottom:10px}
+.not-found p{font-size:14px;color:var(--warm-gray);margin-bottom:24px}
+@media(max-width:640px){.detail-hero img{height:250px}.detail-body{padding:24px}.detail-photos{grid-template-columns:repeat(2,1fr)}}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div class="noise-overlay"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-spinner"></div>
+<div class="loading-text">正在加载手帐...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<header class="header">
+<div class="header-inner">
+<a href="index.html" class="logo">
+<div class="logo-mark">🌿</div>
+<div><div class="logo-text">旅记</div><div class="logo-tag">TRAVEL PLOG</div></div>
+</a>
+<div class="header-actions">
+<button class="header-btn" onclick="goToMyJournals()">我的手帐</button>
+<button class="header-btn primary" onclick="goToEditor()">新建手帐</button>
+<div class="user-avatar" id="userAvatar" style="display:none" onclick="toggleUserMenu()">?</div>
+</div>
+</div>
+</header>
+
+<div class="detail-page" id="detailPage">
+<!-- 动态内容 -->
+</div>
+
+<footer class="footer"><p>旅记 Travel PLOG · 让每一次出发都值得被珍藏 <span class="heart">❤</span></p></footer>
+
+<script>
+// ==================== 配置区 ====================
+const SUPABASE_URL = 'https://yrpjgzoiaipiutbtnjle.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MKvv219kLNsN1lTGvxbWzg_vUJpu4Ky';
+
+let supabase = null;
+let currentUser = null;
+let useLocalMode = false;
+let currentJournal = null;
+
+// ==================== 本地存储工具 ====================
+const Storage = {
+    getUsers() {
+        try { return JSON.parse(localStorage.getItem('travel_users') || '[]'); }
+        catch(e) { return []; }
+    },
+    getJournals(userId) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            return all[userId] || [];
+        } catch(e) { return []; }
+    },
+    getCurrentUser() {
+        try { return JSON.parse(localStorage.getItem('travel_current_user') || 'null'); }
+        catch(e) { return null; }
+    },
+    setCurrentUser(user) {
+        if (user) {
+            localStorage.setItem('travel_current_user', JSON.stringify(user));
+        } else {
+            localStorage.removeItem('travel_current_user');
+        }
+    },
+    setEditingJournal(id) {
+        localStorage.setItem('travel_editing_journal', id);
+    },
+    clearEditingJournal() {
+        localStorage.removeItem('travel_editing_journal');
+    },
+    getViewingJournal() {
+        return localStorage.getItem('travel_viewing_journal') || null;
+    },
+    clearViewingJournal() {
+        localStorage.removeItem('travel_viewing_journal');
+    }
+};
+
+// ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    initSupabase();
+    const savedUser = Storage.getCurrentUser();
+    if (savedUser) {
+        currentUser = savedUser;
+        updateUserUI();
+    }
+
+    const journalId = Storage.getViewingJournal();
+    if (journalId) {
+        loadJournalDetail(journalId);
+        Storage.clearViewingJournal();
+    } else {
+        renderNotFound();
+    }
+});
+
+function initSupabase() {
+    if (SUPABASE_URL.includes('your-project') || SUPABASE_KEY.includes('your-anon')) {
+        useLocalMode = true;
+        return false;
+    }
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        useLocalMode = false;
+        return true;
+    } catch (e) {
+        useLocalMode = true;
+        return false;
+    }
+}
+
+// ==================== 页面导航 ====================
+function goToEditor() {
+    Storage.clearEditingJournal();
+    window.location.href = 'editor.html';
+}
+
+function goToMyJournals() {
+    window.location.href = 'my-journals.html';
+}
+
+function editCurrentJournal() {
+    if (!currentJournal) return;
+    Storage.setEditingJournal(currentJournal.id);
+    window.location.href = 'editor.html';
+}
+
+// ==================== 加载手帐详情 ====================
+async function loadJournalDetail(id) {
+    showLoading(true);
+    try {
+        let journal = null;
+        if (useLocalMode) {
+            await new Promise(r => setTimeout(r, 200));
+            const all = Storage.getJournals(currentUser ? currentUser.id : 'guest');
+            journal = all.find(j => j.id === id);
+        } else if (supabase) {
+            const { data, error } = await supabase.from('journals').select('*').eq('id', id).single();
+            if (error) throw error;
+            journal = data;
+        }
+
+        if (!journal) {
+            renderNotFound();
+            return;
+        }
+
+        currentJournal = journal;
+        renderDetail(journal);
+    } catch (err) {
+        console.error('加载失败:', err);
+        renderNotFound();
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==================== 渲染详情 ====================
+function renderDetail(j) {
+    const dateStr = j.date || (j.created_at ? j.created_at.split('T')[0] : '');
+    const tags = j.tags || [];
+    const photos = j.photos || [];
+    const isOwner = currentUser && j.user_id === currentUser.id;
+
+    const page = document.getElementById('detailPage');
+    page.innerHTML = `
+        <div class="detail-breadcrumb">
+            <a href="index.html">🏠 首页</a>
+            <span class="sep">/</span>
+            <a href="my-journals.html">📖 我的手帐</a>
+            <span class="sep">/</span>
+            <span class="current">${j.title || '未命名'}</span>
+        </div>
+
+        <div class="detail-hero">
+            ${j.cover ? `<img src="${j.cover}" alt="${j.title}">` : `<div class="detail-hero-placeholder">🌿</div>`}
+            <div class="detail-hero-overlay">
+                <div class="detail-hero-content">
+                    <h1>${j.title || '未命名旅行'}</h1>
+                    <div class="detail-hero-meta">
+                        <span>📅 ${dateStr}</span>
+                        <span>📍 ${j.location || '未知地点'}</span>
+                        <span>🎨 ${j.theme || '暖棕'}主题</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-actions-bar">
+            ${isOwner ? `<button class="detail-action-btn detail-action-btn-primary" onclick="editCurrentJournal()"><span>✏️</span> 编辑手帐</button>` : ''}
+            <button class="detail-action-btn detail-action-btn-secondary" onclick="exportJournal()"><span>📤</span> 导出图片</button>
+            ${isOwner ? `<button class="detail-action-btn detail-action-btn-danger" onclick="deleteCurrentJournal()"><span>🗑️</span> 删除</button>` : ''}
+        </div>
+
+        <div class="detail-body">
+            <div class="detail-section">
+                <h3>📋 基本信息</h3>
+                <div class="detail-info-grid">
+                    <div class="detail-info-item">
+                        <div class="label">日期</div>
+                        <div class="value">${dateStr}</div>
+                    </div>
+                    <div class="detail-info-item">
+                        <div class="label">地点</div>
+                        <div class="value">${j.location || '—'}</div>
+                    </div>
+                    <div class="detail-info-item">
+                        <div class="label">主题</div>
+                        <div class="value">${j.theme || '暖棕'}</div>
+                    </div>
+                    <div class="detail-info-item">
+                        <div class="label">照片</div>
+                        <div class="value">${photos.length} 张</div>
+                    </div>
+                </div>
+            </div>
+
+            ${photos.length > 0 ? `
+            <div class="detail-section">
+                <h3>📷 旅行照片</h3>
+                <div class="detail-photos">
+                    ${photos.map(p => `<img src="${p}" alt="旅行照片" onclick="window.open('${p}', '_blank')">`).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            <div class="detail-section">
+                <h3>✍️ 旅行记录</h3>
+                <div class="detail-text">${j.description || j.desc || '暂无文字记录'}</div>
+            </div>
+
+            ${tags.length > 0 ? `
+            <div class="detail-section">
+                <h3>🏷️ 标签</h3>
+                <div class="detail-tags">
+                    ${tags.map(t => `<span class="detail-tag">#${t}</span>`).join('')}
+                </div>
+            </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function renderNotFound() {
+    document.getElementById('detailPage').innerHTML = `
+        <div class="not-found">
+            <div class="icon">📔</div>
+            <h2>手帐不存在</h2>
+            <p>这本手帐可能已被删除，或你没有权限查看。</p>
+            <button class="cta-btn cta-btn-main" onclick="goToMyJournals()">
+                <span>📖</span> 返回我的手帐
+            </button>
+        </div>
+    `;
+}
+
+// ==================== 操作 ====================
+async function deleteCurrentJournal() {
+    if (!currentJournal) return;
+    if (!confirm('确定要删除这本手帐吗？此操作不可恢复。')) return;
+
+    showLoading(true);
+    try {
+        if (useLocalMode) {
+            const all = Storage.getJournals(currentUser.id);
+            const filtered = all.filter(j => j.id !== currentJournal.id);
+            Storage.setJournals(currentUser.id, filtered);
+        } else if (supabase) {
+            const { error } = await supabase.from('journals').delete().eq('id', currentJournal.id).eq('user_id', currentUser.id);
+            if (error) throw error;
+        }
+        showToast('手帐已删除');
+        goToMyJournals();
+    } catch (err) {
+        showToast('删除失败: ' + err.message);
+        showLoading(false);
+    }
+}
+
+async function exportJournal() {
+    if (!currentJournal) return;
+    showToast('导出功能：将手帐内容生成图片...');
+    // 实际导出逻辑可以在这里实现
+}
+
+// ==================== 用户UI ====================
+function updateUserUI() {
+    const avatar = document.getElementById('userAvatar');
+    if (currentUser) {
+        avatar.style.display = 'flex';
+        avatar.textContent = (currentUser.name || currentUser.email).charAt(0).toUpperCase();
+    } else {
+        avatar.style.display = 'none';
+    }
+}
+
+function toggleUserMenu() {
+    if (confirm('确定要退出登录吗？')) {
+        if (!useLocalMode && supabase) supabase.auth.signOut();
+        currentUser = null;
+        Storage.setCurrentUser(null);
+        window.location.href = 'index.html';
+    }
+}
+
+// ==================== 工具函数 ====================
+function showLoading(show) {
+    document.getElementById('loadingOverlay').classList.toggle('active', show);
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
