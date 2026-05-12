@@ -924,19 +924,18 @@ async function saveJournal() {
     const cover = uploadedPhotos.length > 0 ? uploadedPhotos[0] : null;
 
     const journal = {
-        id: Date.now().toString(),
-        title,
-        date: dateVal || new Date().toISOString().split('T')[0],
-        location,
-        desc: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-        cover,
-        pages: 1,
-        userId: currentUser.id,
-        photos: uploadedPhotos,
-        theme: currentTheme,
-        layout: currentLayout,
-        createdAt: new Date().toISOString()
-    };
+    title: title,
+    date: dateVal || new Date().toISOString().split('T')[0],
+    location: location,
+    description: text,  // ✅ 改为 description，不是 desc
+    cover: cover,
+    pages: 1,
+    user_id: currentUser.id,  // ✅ 改为 user_id，不是 userId
+    photos: uploadedPhotos,     // ✅ Supabase JSONB 会自动处理数组
+    theme: currentTheme,
+    layout: currentLayout
+    // 不要传 id、createdAt，让数据库自动生成
+};
 
     showLoading(true);
     try {
