@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
+
 :root{--cream:#FAF8F5;--warm-white:#FDFCFA;--paper:#F5F0EB;--latte:#E8DFD4;--sand:#D4C5B3;--taupe:#B8A99A;--warm-gray:#9A8B7A;--stone:#7A6B5A;--ink:#3D352E;--soft-ink:#5A5045;--rose:#C4A494;--sage:#A8B5A0;--dusty-blue:#94A8B4;--peach:#D4A594;--film-border:#1a1a1a;--shadow-soft:rgba(61,53,46,0.06);--shadow-medium:rgba(61,53,46,0.1);--font-serif:'Noto Serif SC','Georgia',serif;--font-sans:'Noto Sans SC','PingFang SC',sans-serif;--font-display:'ZCOOL XiaoWei','Noto Serif SC',serif}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
@@ -189,11 +189,78 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 .fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--peach));color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(196,164,148,0.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;animation:float 3s ease infinite}
 .fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(196,164,148,0.5)}
 @media(min-width:901px){.fab{display:none}}
+
+/* 新增：模板详情弹窗 */
+.template-detail-overlay{position:fixed;inset:0;background:rgba(61,53,46,0.5);backdrop-filter:blur(16px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.4s ease}
+.template-detail-overlay.active{opacity:1;pointer-events:all}
+.template-detail-card{background:var(--warm-white);border-radius:24px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(61,53,46,0.3);position:relative;animation:slideUp 0.5s ease}
+.template-detail-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.95);border:none;cursor:pointer;font-size:18px;color:var(--soft-ink);z-index:10;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.template-detail-close:hover{background:white;transform:rotate(90deg)}
+.template-detail-hero{height:320px;border-radius:24px 24px 0 0;overflow:hidden;position:relative}
+.template-detail-hero img{width:100%;height:100%;object-fit:cover}
+.template-detail-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(61,53,46,0.6),transparent 60%)}
+.template-detail-hero-content{position:absolute;bottom:0;left:0;right:0;padding:32px;color:white;z-index:2}
+.template-detail-hero-content h2{font-family:var(--font-display);font-size:32px;margin-bottom:8px;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.template-detail-hero-content p{font-size:14px;opacity:0.9;text-shadow:0 1px 4px rgba(0,0,0,0.3)}
+.template-detail-body{padding:32px}
+.template-detail-tags{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.template-detail-tag{padding:6px 14px;background:var(--paper);border-radius:20px;font-size:12px;color:var(--soft-ink);border:1px solid var(--latte)}
+.template-detail-desc{font-family:var(--font-serif);font-size:15px;line-height:1.9;color:var(--soft-ink);margin-bottom:24px}
+.template-detail-features{margin-bottom:24px}
+.template-detail-features h4{font-family:var(--font-serif);font-size:14px;color:var(--warm-gray);margin-bottom:12px;letter-spacing:1px}
+.template-detail-features ul{list-style:none;padding:0}
+.template-detail-features li{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;color:var(--soft-ink);border-bottom:1px solid var(--latte)}
+.template-detail-features li:last-child{border-bottom:none}
+.template-detail-features li span{font-size:18px}
+.template-detail-actions{display:flex;gap:12px}
+.template-detail-btn{flex:1;padding:14px;border-radius:14px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;border:none;transition:all 0.3s ease;display:flex;align-items:center;justify-content:center;gap:8px}
+.template-detail-btn-primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.template-detail-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,164,148,0.3)}
+.template-detail-btn-secondary{background:var(--paper);color:var(--soft-ink);border:1.5px solid var(--latte)}
+.template-detail-btn-secondary:hover{background:var(--latte)}
+@media(max-width:640px){.template-detail-hero{height:240px}.template-detail-body{padding:24px}.template-detail-hero-content h2{font-size:24px}}
+/* 新增：页面切换动画 */
+.page-section{display:none;opacity:0;transform:translateY(20px);transition:all 0.5s ease}
+.page-section.active{display:block;opacity:1;transform:translateY(0)}
+/* 新增：模板卡片点击态 */
+.template-card{cursor:pointer}
 </style>
+<base target="_blank">
 </head>
 <body>
 <div class="noise-overlay"></div>
 
+<!-- 模板详情弹窗 -->
+<div class="template-detail-overlay" id="templateDetailOverlay" onclick="hideTemplateDetail()">
+<div class="template-detail-card" onclick="event.stopPropagation()">
+<button class="template-detail-close" onclick="hideTemplateDetail()">✕</button>
+<div class="template-detail-hero" id="templateDetailHero">
+<img src="" alt="" id="templateDetailImg">
+<div class="template-detail-hero-content">
+<h2 id="templateDetailTitle"></h2>
+<p id="templateDetailSubtitle"></p>
+</div>
+</div>
+<div class="template-detail-body">
+<div class="template-detail-tags" id="templateDetailTags"></div>
+<div class="template-detail-desc" id="templateDetailDesc"></div>
+<div class="template-detail-features">
+<h4>✨ 包含功能</h4>
+<ul id="templateDetailFeatures"></ul>
+</div>
+<div class="template-detail-actions">
+<button class="template-detail-btn template-detail-btn-primary" onclick="useTemplate()">
+<span>📝</span> 使用此模板
+</button>
+<button class="template-detail-btn template-detail-btn-secondary" onclick="hideTemplateDetail()">
+<span>↩</span> 返回
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 认证弹窗 -->
 <div class="auth-overlay" id="authOverlay">
 <div class="auth-card">
 <div class="logo-icon">🌿</div>
@@ -221,145 +288,116 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 
 <header class="header">
 <div class="header-inner">
-<a href="#" class="logo" onclick="showSection('home');return false">
+<a href="index.html" class="logo">
 <div class="logo-mark">🌿</div>
 <div><div class="logo-text">旅记</div><div class="logo-tag">TRAVEL PLOG</div></div>
 </a>
 <div class="header-actions">
-<button class="header-btn" onclick="showSection('journals')" id="navJournals">我的手帐</button>
-<button class="header-btn primary" onclick="showSection('editor')" id="navCreate">新建手帐</button>
+<button class="header-btn" onclick="goToMyJournals()" id="navJournals">我的手帐</button>
+<button class="header-btn primary" onclick="goToEditor()" id="navCreate">新建手帐</button>
 <div class="user-avatar" id="userAvatar" style="display:none" onclick="toggleUserMenu()">?</div>
 </div>
 </div>
 </header>
 
 <div class="app-container">
-<section class="templates-section active" id="homeSection">
+<!-- 主页内容 -->
+<section class="templates-section active page-section" id="homeSection">
 <div class="hero">
 <div class="hero-badge"><span class="dot"></span><span>AI 智能排版 · 一键生成</span></div>
 <h1>把旅行碎片<br>变成<span class="highlight">会呼吸的手帐</span></h1>
 <p class="hero-desc">上传照片，写下心情，AI 自动为你排版成日系杂志风 PLOG。<br>胶片感、留白美学、低饱和配色——让每一次出发都值得被珍藏。</p>
 <div class="hero-cta">
-<button class="cta-btn cta-btn-main" onclick="showSection('editor')"><span>✨</span> 开始创作</button>
-<button class="cta-btn cta-btn-ghost" onclick="showSection('journals')"><span>📖</span> 浏览手帐</button>
+<button class="cta-btn cta-btn-main" onclick="goToEditor()"><span>✨</span> 开始创作</button>
+<button class="cta-btn cta-btn-ghost" onclick="goToMyJournals()"><span>📖</span> 浏览手帐</button>
 </div>
 </div>
 <div class="divider"></div>
 <div class="section-header"><h2>精选模板</h2><p>选择一种风格，开启你的旅行记录</p></div>
 <div class="templates-grid" id="templatesGrid"></div>
 </section>
-
-<section class="editor-section" id="editorSection">
-<div class="tabs">
-<button class="tab active" onclick="switchEditorTab('content',this)">内容编辑</button>
-<button class="tab" onclick="switchEditorTab('style',this)">风格样式</button>
-<button class="tab" onclick="switchEditorTab('export',this)">导出分享</button>
 </div>
-<div class="editor-layout">
-<div class="canvas-area">
-<div class="canvas-page" id="canvasPage">
-<div class="page-header">
-<div class="page-date" id="previewDate">2024.05.12 · 星期日</div>
-<div class="page-title" id="previewTitle">京都的午后</div>
-<div class="page-weather">
-<span id="previewWeatherIcon">☀️</span>
-<span id="previewWeather">晴 24°C</span>
-<span>·</span>
-<span id="previewLocation">京都 · 清水寺</span>
-</div>
-</div>
-<div class="page-content">
-<div class="photo-grid two-col" id="previewPhotoGrid">
-<div class="photo-item film-frame"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop" alt="旅行照片"></div>
-<div class="photo-item film-frame"><img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=400&fit=crop" alt="旅行照片"></div>
-</div>
-<div class="page-text" id="previewText">走在二年坂的石板路上，阳光透过古老的木屋洒下来，空气中飘着抹茶和檀香的混合味道。在一家不起眼的小店前停下脚步，点了一份抹茶冰淇淋，看着远处的五重塔在蓝天下静静伫立。</div>
-<div class="page-tags" id="previewTags">
-<span class="page-tag">#京都</span>
-<span class="page-tag">#抹茶</span>
-<span class="page-tag">#古寺</span>
-<span class="page-tag">#慢旅行</span>
-</div>
-</div>
-<div class="page-footer">
-<div class="page-stamp">TRAVEL PLOG</div>
-<span>Page 01</span>
-</div>
-</div>
-</div>
-<div class="editor-sidebar">
-<div class="sidebar-card">
-<h3><span class="icon">📝</span>基本信息</h3>
-<div class="form-group"><label class="form-label">标题</label><input type="text" class="form-input" id="inputTitle" value="京都的午后" placeholder="给你的旅行起个名字"></div>
-<div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="inputDate"></div>
-<div class="form-group"><label class="form-label">地点</label><input type="text" class="form-input" id="inputLocation" value="京都 · 清水寺" placeholder="你在哪里？"></div>
-<div class="form-group"><label class="form-label">天气</label><select class="form-select" id="inputWeather"><option value="☀️ 晴">☀️ 晴</option><option value="⛅ 多云">⛅ 多云</option><option value="🌧️ 雨">🌧️ 雨</option><option value="☁️ 阴">☁️ 阴</option><option value="🌨️ 雪">🌨️ 雪</option><option value="🌈 彩虹">🌈 彩虹</option></select></div>
-</div>
-<div class="sidebar-card">
-<h3><span class="icon">📷</span>照片</h3>
-<div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-<div class="upload-icon">📤</div><p>点击或拖拽上传照片</p><small>支持 JPG、PNG，最多 9 张</small>
-</div>
-<input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFileUpload(event)">
-<div class="photo-thumbs" id="photoThumbs"></div>
-</div>
-<div class="sidebar-card">
-<h3><span class="icon">✍️</span>文字记录</h3>
-<div class="form-group"><textarea class="form-textarea" id="inputText" placeholder="写下今天的心情、见闻、感受...">走在二年坂的石板路上，阳光透过古老的木屋洒下来，空气中飘着抹茶和檀香的混合味道。在一家不起眼的小店前停下脚步，点了一份抹茶冰淇淋，看着远处的五重塔在蓝天下静静伫立。</textarea></div>
-<div class="form-group"><label class="form-label">标签 (用空格分隔)</label><input type="text" class="form-input" id="inputTags" value="京都 抹茶 古寺 慢旅行" placeholder="添加标签"></div>
-</div>
-<div class="sidebar-card">
-<h3><span class="icon">🎨</span>页面风格</h3>
-<div class="form-group"><label class="form-label">配色主题</label><div class="theme-options" id="themeOptions">
-<div class="theme-option active" style="background:linear-gradient(135deg,#C4A494,#D4A594)" data-theme="warm" title="暖棕"><span class="theme-name">暖棕</span></div>
-<div class="theme-option" style="background:linear-gradient(135deg,#A8B5A0,#94A8B4)" data-theme="sage" title="森绿"><span class="theme-name">森绿</span></div>
-<div class="theme-option" style="background:linear-gradient(135deg,#94A8B4,#B8C4D0)" data-theme="ocean" title="海蓝"><span class="theme-name">海蓝</span></div>
-<div class="theme-option" style="background:linear-gradient(135deg,#D4C5B3,#C4B5A4)" data-theme="cream" title="米白"><span class="theme-name">米白</span></div>
-</div></div>
-<div class="form-group"><label class="form-label">照片布局</label><div class="layout-options" id="layoutOptions">
-<div class="layout-option active" data-layout="two-col">双列</div>
-<div class="layout-option" data-layout="three-col">三列</div>
-<div class="layout-option" data-layout="single">单列</div>
-</div></div>
-<div class="form-group"><label class="form-label">装饰贴纸</label><div class="sticker-palette">
-<div class="sticker-item" onclick="addSticker('🌸')">🌸</div><div class="sticker-item" onclick="addSticker('✨')">✨</div><div class="sticker-item" onclick="addSticker('🎞️')">🎞️</div><div class="sticker-item" onclick="addSticker('☕')">☕</div>
-<div class="sticker-item" onclick="addSticker('🌿')">🌿</div><div class="sticker-item" onclick="addSticker('📍')">📍</div><div class="sticker-item" onclick="addSticker('🌙')">🌙</div><div class="sticker-item" onclick="addSticker('💭')">💭</div>
-</div></div>
-</div>
-<div class="sidebar-card">
-<h3><span class="icon">💾</span>操作</h3>
-<div class="action-buttons">
-<button class="action-btn action-btn-export" onclick="exportPage()"><span>📤</span> 导出图片</button>
-<button class="action-btn action-btn-save" onclick="saveJournal()"><span>💾</span> 保存</button>
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<section class="journals-section" id="journalsSection">
-<div class="section-header"><h2>我的手帐</h2><p>你所有的旅行记忆，都在这里安静呼吸</p></div>
-<div class="journals-grid" id="journalsGrid"></div>
-</section>
 
 <footer class="footer"><p>旅记 Travel PLOG · 让每一次出发都值得被珍藏 <span class="heart">❤</span></p></footer>
-</div>
-
-<button class="fab" onclick="showSection('editor')">+</button>
 
 <script>
 // ==================== 配置区 ====================
-// 【重要】请替换为你自己的 Supabase 项目配置
 const SUPABASE_URL = 'https://yrpjgzoiaipiutbtnjle.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_MKvv219kLNsN1lTGvxbWzg_vUJpu4Ky';
 
 let supabase = null;
 let currentUser = null;
-let useLocalMode = false; // true = 本地存储模式，false = Supabase 模式
+let useLocalMode = false;
+let currentTemplate = null;
+
+// ==================== 本地存储工具 ====================
+const Storage = {
+    getUsers() {
+        try { return JSON.parse(localStorage.getItem('travel_users') || '[]'); }
+        catch(e) { return []; }
+    },
+    setUsers(users) {
+        localStorage.setItem('travel_users', JSON.stringify(users));
+    },
+    getJournals(userId) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            return all[userId] || [];
+        } catch(e) { return []; }
+    },
+    setJournals(userId, data) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            all[userId] = data;
+            localStorage.setItem('travel_journals', JSON.stringify(all));
+        } catch(e) { console.error('保存失败:', e); }
+    },
+    getCurrentUser() {
+        try { return JSON.parse(localStorage.getItem('travel_current_user') || 'null'); }
+        catch(e) { return null; }
+    },
+    setCurrentUser(user) {
+        if (user) {
+            localStorage.setItem('travel_current_user', JSON.stringify(user));
+        } else {
+            localStorage.removeItem('travel_current_user');
+        }
+    },
+    // 存储选中的模板ID，跨页面传递
+    setSelectedTemplate(id) {
+        localStorage.setItem('travel_selected_template', id);
+    },
+    getSelectedTemplate() {
+        return localStorage.getItem('travel_selected_template') || null;
+    },
+    clearSelectedTemplate() {
+        localStorage.removeItem('travel_selected_template');
+    }
+};
+
+// ==================== 模板数据 ====================
+const templates = [
+    {id:'daily',name:'每日 PLOG',desc:'记录一天的美好，适合小红书风格长图。自动排版照片与文字，生成精美的每日回顾页面。',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','快速记录'],pages:1,features:['📷 智能照片排版','✍️ 心情文字区','🏷️ 自动标签生成','🎨 3种配色主题']},
+    {id:'food',name:'美食日记',desc:'记录旅途中的每一道美味，带评分系统。专为美食探店设计，支持菜品评分和价格记录。',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','探店'],pages:1,features:['⭐ 菜品评分系统','💰 价格记录','📍 店铺定位','🍜 美食分类标签']},
+    {id:'city',name:'城市碎片',desc:'街头巷尾的随手拍，拼贴风排版。适合记录城市漫步的零散瞬间，自动生成拼贴效果。',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','氛围感'],pages:1,features:['🧩 拼贴风排版','🎞️ 胶片边框','🌆 城市标签','✨ 氛围滤镜']},
+    {id:'spot',name:'景点记录',desc:'地标打卡与深度游览，地图轨迹展示。支持多张照片组合，记录完整的景点游览体验。',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','打卡'],pages:1,features:['📍 地点标记','🗺️ 游览路线','📸 打卡照片墙','📝 游览心得']},
+    {id:'mood',name:'情绪页',desc:'用文字和色彩表达旅行中的心情。大面积留白设计，突出文字的情绪表达力。',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','治愈'],pages:1,features:['🎨 情绪配色','🌙 夜间模式','💭 心情标签','🖊️ 手写字体']},
+    {id:'summary',name:'旅行总结',desc:'完整旅程回顾，自动生成时间轴。适合长旅行结束后的总结，包含行程统计和精选照片。',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','纪念册'],pages:3,features:['📊 行程统计','📅 时间轴','⭐ 精选回顾','📖 多页布局']}
+];
 
 // ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    initSupabase();
+    const savedUser = Storage.getCurrentUser();
+    if (savedUser) {
+        currentUser = savedUser;
+        updateUserUI();
+    }
+    renderTemplates();
+    setupAuthListeners();
+});
+
 function initSupabase() {
-    // 检查配置是否已填写
     if (SUPABASE_URL.includes('your-project') || SUPABASE_KEY.includes('your-anon')) {
         console.log('⚠️ Supabase 未配置，启用本地存储模式');
         useLocalMode = true;
@@ -377,89 +415,76 @@ function initSupabase() {
     }
 }
 
-// ==================== 全局状态 ====================
-let uploadedPhotos = [];
-let currentTheme = 'warm';
-let currentLayout = 'two-col';
-let isLoginMode = true;
-let journals = [];
-
-// ==================== 本地存储工具 ====================
-const Storage = {
-    // 用户数据
-    getUsers() {
-        try { return JSON.parse(localStorage.getItem('travel_users') || '[]'); }
-        catch(e) { return []; }
-    },
-    setUsers(users) {
-        localStorage.setItem('travel_users', JSON.stringify(users));
-    },
-    // 手帐数据（按用户隔离）
-    getJournals(userId) {
-        try {
-            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
-            return all[userId] || [];
-        } catch(e) { return []; }
-    },
-    setJournals(userId, data) {
-        try {
-            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
-            all[userId] = data;
-            localStorage.setItem('travel_journals', JSON.stringify(all));
-        } catch(e) { console.error('保存失败:', e); }
-    },
-    // 当前登录用户
-    getCurrentUser() {
-        try { return JSON.parse(localStorage.getItem('travel_current_user') || 'null'); }
-        catch(e) { return null; }
-    },
-    setCurrentUser(user) {
-        if (user) {
-            localStorage.setItem('travel_current_user', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('travel_current_user');
-        }
+// ==================== 页面导航 ====================
+function goToEditor() {
+    if (!currentUser) {
+        showAuth();
+        return;
     }
-};
+    window.location.href = 'editor.html';
+}
 
-// ==================== 模板数据 ====================
-const templates = [
-    {id:'daily',name:'每日 PLOG',desc:'记录一天的美好，适合小红书风格长图',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','快速记录'],pages:1},
-    {id:'food',name:'美食日记',desc:'记录旅途中的每一道美味，带评分系统',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','探店'],pages:1},
-    {id:'city',name:'城市碎片',desc:'街头巷尾的随手拍，拼贴风排版',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','氛围感'],pages:1},
-    {id:'spot',name:'景点记录',desc:'地标打卡与深度游览，地图轨迹展示',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','打卡'],pages:1},
-    {id:'mood',name:'情绪页',desc:'用文字和色彩表达旅行中的心情',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','治愈'],pages:1},
-    {id:'summary',name:'旅行总结',desc:'完整旅程回顾，自动生成时间轴',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','纪念册'],pages:3}
-];
-
-const demoJournals = [
-    {id:'demo-1',title:'京都三日',date:'2024.04.15',location:'京都, 日本',cover:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',desc:'樱花季的京都，古老与温柔并存。在哲学之道散步，在鸭川边发呆，在祗园偶遇艺伎。',pages:5},
-    {id:'demo-2',title:'台北夜市巡礼',date:'2024.03.20',location:'台北, 台湾',cover:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',desc:'从士林到饶河，从宁夏到南机场。每一口都是记忆的味道，每一盏灯都是城市的温度。',pages:3},
-    {id:'demo-3',title:'冰岛环岛',date:'2024.02.10',location:'冰岛',cover:'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=600&h=400&fit=crop',desc:'在世界尽头看极光跳舞，在黑沙滩听海浪低语。冰岛教会我什么是真正的孤独与壮阔。',pages:8}
-];
-
-// ==================== 页面加载 ====================
-document.addEventListener('DOMContentLoaded', () => {
-    initSupabase();
-
-    // 恢复登录状态
-    const savedUser = Storage.getCurrentUser();
-    if (savedUser) {
-        currentUser = savedUser;
-        updateUserUI();
-        loadUserJournals();
+function goToMyJournals() {
+    if (!currentUser) {
+        showAuth();
+        return;
     }
+    window.location.href = 'my-journals.html';
+}
 
-    renderTemplates();
-    renderJournals();
-    setupEventListeners();
-    setupThemeOptions();
-    setupLayoutOptions();
+// ==================== 模板渲染 ====================
+function renderTemplates() {
+    const grid = document.getElementById('templatesGrid');
+    grid.innerHTML = templates.map(t => `
+        <div class="template-card" onclick="showTemplateDetail('${t.id}')">
+            <div class="template-preview">
+                <img src="${t.image}" alt="${t.name}" loading="lazy">
+                <div class="template-overlay"><span class="template-tag">${t.pages} 页</span></div>
+            </div>
+            <div class="template-info">
+                <h3>${t.name}</h3>
+                <p>${t.desc.substring(0, 50)}...</p>
+                <div class="template-meta">${t.tags.map(tag => `<span>🏷️ ${tag}</span>`).join('')}</div>
+            </div>
+        </div>
+    `).join('');
+}
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('inputDate').value = today;
-    updatePreview();
-});
+// ==================== 模板详情弹窗 ====================
+function showTemplateDetail(id) {
+    const template = templates.find(t => t.id === id);
+    if (!template) return;
+    currentTemplate = template;
+
+    document.getElementById('templateDetailImg').src = template.image;
+    document.getElementById('templateDetailImg').alt = template.name;
+    document.getElementById('templateDetailTitle').textContent = template.name;
+    document.getElementById('templateDetailSubtitle').textContent = template.desc;
+    document.getElementById('templateDetailTags').innerHTML = template.tags.map(t => `<span class="template-detail-tag">${t}</span>`).join('');
+    document.getElementById('templateDetailDesc').textContent = template.desc;
+    document.getElementById('templateDetailFeatures').innerHTML = template.features.map(f => `<li><span>${f.split(' ')[0]}</span> ${f.substring(f.indexOf(' ')+1)}</li>`).join('');
+
+    document.getElementById('templateDetailOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function hideTemplateDetail() {
+    document.getElementById('templateDetailOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+    currentTemplate = null;
+}
+
+function useTemplate() {
+    if (!currentUser) {
+        hideTemplateDetail();
+        showAuth();
+        return;
+    }
+    if (currentTemplate) {
+        Storage.setSelectedTemplate(currentTemplate.id);
+    }
+    window.location.href = 'editor.html';
+}
 
 // ==================== 认证系统 ====================
 function showAuth() {
@@ -488,121 +513,65 @@ async function handleAuth() {
     const password = document.getElementById('authPassword').value;
     const errorEl = document.getElementById('authError');
 
-    if (!email || !password) {
-        errorEl.textContent = '请填写邮箱和密码';
-        return;
-    }
-    if (password.length < 6) {
-        errorEl.textContent = '密码至少需要6位';
-        return;
-    }
+    if (!email || !password) { errorEl.textContent = '请填写邮箱和密码'; return; }
+    if (password.length < 6) { errorEl.textContent = '密码至少需要6位'; return; }
 
     showLoading(true);
     errorEl.textContent = '';
 
     try {
         if (useLocalMode) {
-            // ===== 本地模式 =====
-            await new Promise(r => setTimeout(r, 600)); // 模拟网络延迟
+            await new Promise(r => setTimeout(r, 600));
             const users = Storage.getUsers();
-
             if (isLoginMode) {
-                // 登录
                 const user = users.find(u => u.email === email && u.password === password);
-                if (!user) {
-                    throw new Error('邮箱或密码错误，请检查');
-                }
+                if (!user) throw new Error('邮箱或密码错误，请检查');
                 currentUser = { email: user.email, id: user.id, name: user.email.split('@')[0] };
             } else {
-                // 注册
-                if (users.find(u => u.email === email)) {
-                    throw new Error('该邮箱已注册，请直接登录');
-                }
-                const newUser = { 
-                    id: 'local_' + Date.now().toString(36), 
-                    email: email, 
-                    password: password,
-                    createdAt: new Date().toISOString()
-                };
+                if (users.find(u => u.email === email)) throw new Error('该邮箱已注册，请直接登录');
+                const newUser = { id: 'local_' + Date.now().toString(36), email: email, password: password, createdAt: new Date().toISOString() };
                 users.push(newUser);
                 Storage.setUsers(users);
                 currentUser = { email: newUser.email, id: newUser.id, name: newUser.email.split('@')[0] };
             }
-
-            // 保存登录状态
             Storage.setCurrentUser(currentUser);
-
         } else {
-            // ===== Supabase 模式 =====
             if (isLoginMode) {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                currentUser = { 
-                    email: data.user.email, 
-                    id: data.user.id, 
-                    name: data.user.email.split('@')[0]
-                };
+                currentUser = { email: data.user.email, id: data.user.id, name: data.user.email.split('@')[0] };
             } else {
-                // 注册时关闭邮箱确认（开发环境）
-                const { data, error } = await supabase.auth.signUp({ 
-                    email, 
-                    password,
-                    options: { data: { name: email.split('@')[0] } }
-                });
+                const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name: email.split('@')[0] } } });
                 if (error) throw error;
-
-                // 如果 Supabase 开启了邮箱确认，提示用户
-                if (data.user && data.user.identities && data.user.identities.length === 0) {
-                    throw new Error('该邮箱已注册，请直接登录');
-                }
-
-                currentUser = { 
-                    email: data.user.email, 
-                    id: data.user.id, 
-                    name: data.user.email.split('@')[0]
-                };
+                if (data.user && data.user.identities && data.user.identities.length === 0) throw new Error('该邮箱已注册，请直接登录');
+                currentUser = { email: data.user.email, id: data.user.id, name: data.user.email.split('@')[0] };
             }
             Storage.setCurrentUser(currentUser);
         }
-
         hideAuth();
         updateUserUI();
-        loadUserJournals();
         showToast(isLoginMode ? '欢迎回来 ✨' : '注册成功，开始记录吧 🌿');
-
     } catch (err) {
-        console.error('认证错误:', err);
         errorEl.textContent = err.message || '操作失败，请重试';
     } finally {
         showLoading(false);
     }
 }
 
-// 访客模式 - 无需登录即可体验
 function guestLogin() {
-    currentUser = { 
-        id: 'guest_' + Date.now().toString(36), 
-        email: 'guest@travelplog.app', 
-        name: '访客'
-    };
+    currentUser = { id: 'guest_' + Date.now().toString(36), email: 'guest@travelplog.app', name: '访客' };
     Storage.setCurrentUser(currentUser);
     hideAuth();
     updateUserUI();
-    loadUserJournals();
     showToast('已以访客模式登录 🎋');
 }
 
 async function logout() {
-    if (!useLocalMode && supabase) {
-        await supabase.auth.signOut();
-    }
+    if (!useLocalMode && supabase) await supabase.auth.signOut();
     currentUser = null;
     Storage.setCurrentUser(null);
     updateUserUI();
-    journals = [];
-    renderJournals();
     showToast('已安全退出');
-    showSection('home');
 }
 
 function updateUserUI() {
@@ -615,379 +584,21 @@ function updateUserUI() {
         avatar.textContent = (currentUser.name || currentUser.email).charAt(0).toUpperCase();
         navJournals.style.display = 'block';
         navCreate.textContent = '新建手帐';
-        navCreate.onclick = () => showSection('editor');
     } else {
         avatar.style.display = 'none';
         navJournals.style.display = 'none';
         navCreate.textContent = '登录 / 注册';
-        navCreate.onclick = () => showAuth();
     }
 }
 
 function toggleUserMenu() {
-    if (confirm('确定要退出登录吗？')) {
-        logout();
-    }
+    if (confirm('确定要退出登录吗？')) logout();
 }
 
-// ==================== 导航 ====================
-function showSection(section) {
-    if ((section === 'journals' || section === 'editor') && !currentUser) {
-        showAuth();
-        return;
-    }
-
-    document.querySelectorAll('.templates-section, .editor-section, .journals-section').forEach(s => {
-        s.classList.remove('active');
-    });
-
-    if (section === 'home') {
-        document.getElementById('homeSection').classList.add('active');
-    } else if (section === 'editor') {
-        document.getElementById('editorSection').classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (section === 'journals') {
-        document.getElementById('journalsSection').classList.add('active');
-        renderJournals();
-    }
-}
-
-function switchEditorTab(tab, el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-}
-
-// ==================== 渲染 ====================
-function renderTemplates() {
-    const grid = document.getElementById('templatesGrid');
-    grid.innerHTML = templates.map(t => `
-        <div class="template-card" onclick="selectTemplate('${t.id}')">
-            <div class="template-preview">
-                <img src="${t.image}" alt="${t.name}" loading="lazy">
-                <div class="template-overlay"><span class="template-tag">${t.pages} 页</span></div>
-            </div>
-            <div class="template-info">
-                <h3>${t.name}</h3>
-                <p>${t.desc}</p>
-                <div class="template-meta">${t.tags.map(tag => `<span>🏷️ ${tag}</span>`).join('')}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderJournals() {
-    const grid = document.getElementById('journalsGrid');
-    const allJournals = currentUser ? [...journals] : [];
-
-    // 未登录时显示演示数据
-    const displayJournals = currentUser ? allJournals : demoJournals;
-
-    if (displayJournals.length === 0) {
-        grid.innerHTML = `
-            <div class="empty-state" style="grid-column:1/-1">
-                <div class="empty-icon">📔</div>
-                <h3>还没有手帐</h3>
-                <p>开始记录你的第一次旅行吧</p>
-                <button class="cta-btn cta-btn-main" onclick="showSection('editor')">创建手帐</button>
-            </div>`;
-        return;
-    }
-
-    grid.innerHTML = displayJournals.map(j => `
-        <div class="journal-card" onclick="viewJournal('${j.id}')">
-            <div class="journal-cover">
-                ${j.cover ? `<img src="${j.cover}" alt="${j.title}" loading="lazy">` : `<div class="journal-cover-placeholder">🌿</div>`}
-            </div>
-            <div class="journal-info">
-                <h3>${j.title}</h3>
-                <div class="journal-meta">${j.date} · ${j.location} · ${j.pages} 页</div>
-                <div class="journal-desc">${j.desc || ''}</div>
-            </div>
-            <div class="journal-actions">
-                <button class="journal-action-btn" onclick="event.stopPropagation();editJournal('${j.id}')">✏️ 编辑</button>
-                <button class="journal-action-btn" onclick="event.stopPropagation();exportJournal('${j.id}')">📤 导出</button>
-                ${currentUser && !j.id.startsWith('demo-') ? `<button class="journal-action-btn" onclick="event.stopPropagation();deleteJournal('${j.id}')">🗑️ 删除</button>` : ''}
-            </div>
-        </div>
-    `).join('');
-}
-
-function selectTemplate(id) {
-    const template = templates.find(t => t.id === id);
-    if (template) {
-        document.getElementById('inputTitle').value = template.name;
-        showSection('editor');
-        showToast(`已选择「${template.name}」模板`);
-    }
-}
-
-function viewJournal(id) {
-    showToast('查看手帐功能开发中...');
-}
-
-function editJournal(id) {
-    showToast('编辑功能开发中...');
-}
-
-function exportJournal(id) {
-    showToast('导出功能开发中...');
-}
-
-async function deleteJournal(id) {
-    if (!confirm('确定要删除这本手帐吗？此操作不可恢复。')) return;
-
-    showLoading(true);
-    try {
-        if (useLocalMode) {
-            journals = journals.filter(j => j.id !== id);
-            Storage.setJournals(currentUser.id, journals);
-        } else if (supabase) {
-            const { error } = await supabase.from('journals').delete().eq('id', id);
-            if (error) throw error;
-            journals = journals.filter(j => j.id !== id);
-        }
-        renderJournals();
-        showToast('手帐已删除');
-    } catch (err) {
-        showToast('删除失败: ' + err.message);
-    } finally {
-        showLoading(false);
-    }
-}
-
-// ==================== 编辑器交互 ====================
-function setupEventListeners() {
+function setupAuthListeners() {
     document.getElementById('authPrimaryBtn').addEventListener('click', handleAuth);
     document.getElementById('authSwitchLink').addEventListener('click', toggleAuthMode);
     document.getElementById('authGuestBtn').addEventListener('click', guestLogin);
-
-    ['inputTitle', 'inputDate', 'inputLocation', 'inputWeather', 'inputText', 'inputTags'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updatePreview);
-    });
-
-    const uploadArea = document.getElementById('uploadArea');
-    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = 'var(--rose)'; });
-    uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = 'var(--latte)'; });
-    uploadArea.addEventListener('drop', e => {
-        e.preventDefault();
-        uploadArea.style.borderColor = 'var(--latte)';
-        handleFiles(e.dataTransfer.files);
-    });
-}
-
-function setupThemeOptions() {
-    document.querySelectorAll('.theme-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
-            opt.classList.add('active');
-            currentTheme = opt.dataset.theme;
-            applyTheme(currentTheme);
-        });
-    });
-}
-
-function setupLayoutOptions() {
-    document.querySelectorAll('.layout-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
-            opt.classList.add('active');
-            currentLayout = opt.dataset.layout;
-            updatePhotoGridLayout();
-        });
-    });
-}
-
-function applyTheme(theme) {
-    const themes = {
-        warm: {'--rose': '#C4A494', '--peach': '#D4A594', '--sage': '#A8B5A0'},
-        sage: {'--rose': '#A8B5A0', '--peach': '#94A8B4', '--sage': '#C4A494'},
-        ocean: {'--rose': '#94A8B4', '--peach': '#B8C4D0', '--sage': '#A8B5A0'},
-        cream: {'--rose': '#D4C5B3', '--peach': '#C4B5A4', '--sage': '#B8A99A'}
-    };
-    const t = themes[theme] || themes.warm;
-    Object.keys(t).forEach(k => document.documentElement.style.setProperty(k, t[k]));
-}
-
-function updatePhotoGridLayout() {
-    const grid = document.getElementById('previewPhotoGrid');
-    grid.className = 'photo-grid ' + currentLayout;
-}
-
-function updatePreview() {
-    const title = document.getElementById('inputTitle').value || '未命名旅行';
-    const dateVal = document.getElementById('inputDate').value;
-    const location = document.getElementById('inputLocation').value || '未知地点';
-    const weather = document.getElementById('inputWeather').value;
-    const text = document.getElementById('inputText').value || '';
-    const tags = document.getElementById('inputTags').value.split(/\s+/).filter(t => t);
-
-    const dateObj = dateVal ? new Date(dateVal) : new Date();
-    const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-    const dateStr = `${dateObj.getFullYear()}.${String(dateObj.getMonth()+1).padStart(2,'0')}.${String(dateObj.getDate()).padStart(2,'0')} · ${weekDays[dateObj.getDay()]}`;
-
-    const weatherIcon = weather.split(' ')[0];
-
-    document.getElementById('previewDate').textContent = dateStr;
-    document.getElementById('previewTitle').textContent = title;
-    document.getElementById('previewLocation').textContent = location;
-    document.getElementById('previewWeatherIcon').textContent = weatherIcon;
-    document.getElementById('previewWeather').textContent = weather;
-    document.getElementById('previewText').textContent = text;
-    document.getElementById('previewTags').innerHTML = tags.map(t => `<span class="page-tag">#${t}</span>`).join('');
-}
-
-// ==================== 照片上传 ====================
-function handleFileUpload(event) {
-    handleFiles(event.target.files);
-}
-
-function handleFiles(files) {
-    const remainingSlots = 9 - uploadedPhotos.length;
-    const filesToProcess = Array.from(files).slice(0, remainingSlots);
-
-    filesToProcess.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            uploadedPhotos.push(e.target.result);
-            renderPhotoThumbs();
-            updatePreviewPhotos();
-        };
-        reader.readAsDataURL(file);
-    });
-
-    if (files.length > remainingSlots) {
-        showToast(`最多上传 9 张照片，已自动选取前 ${remainingSlots} 张`);
-    }
-}
-
-function renderPhotoThumbs() {
-    const container = document.getElementById('photoThumbs');
-    container.innerHTML = uploadedPhotos.map((photo, i) => `
-        <div class="photo-thumb">
-            <img src="${photo}" alt="照片${i+1}">
-            <div class="remove" onclick="removePhoto(${i})">×</div>
-        </div>
-    `).join('');
-}
-
-function removePhoto(index) {
-    uploadedPhotos.splice(index, 1);
-    renderPhotoThumbs();
-    updatePreviewPhotos();
-}
-
-function updatePreviewPhotos() {
-    const grid = document.getElementById('previewPhotoGrid');
-    const photos = uploadedPhotos.length > 0 ? uploadedPhotos : [
-        'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=400&fit=crop'
-    ];
-    const displayPhotos = photos.slice(0, 6);
-    grid.innerHTML = displayPhotos.map(p => `
-        <div class="photo-item film-frame"><img src="${p}" alt="旅行照片"></div>
-    `).join('');
-}
-
-function addSticker(emoji) {
-    showToast(`已添加 ${emoji} 贴纸`);
-}
-
-// ==================== 导出与保存 ====================
-async function exportPage() {
-    const page = document.getElementById('canvasPage');
-    showLoading(true);
-    try {
-        const canvas = await html2canvas(page, { scale: 2, backgroundColor: '#FDFCFA', useCORS: true });
-        const link = document.createElement('a');
-        link.download = `旅记_${document.getElementById('inputTitle').value || '旅行手帐'}_${new Date().toISOString().split('T')[0]}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showToast('图片已导出 ✨');
-    } catch (err) {
-        console.error('导出失败:', err);
-        showToast('导出失败，请重试');
-    } finally {
-        showLoading(false);
-    }
-}
-
-async function saveJournal() {
-    if (!currentUser) {
-        showAuth();
-        return;
-    }
-
-    const title = document.getElementById('inputTitle').value || '未命名旅行';
-    const dateVal = document.getElementById('inputDate').value;
-    const location = document.getElementById('inputLocation').value || '未知地点';
-    const text = document.getElementById('inputText').value;
-    const cover = uploadedPhotos.length > 0 ? uploadedPhotos[0] : null;
-
-    const journal = {
-    title: title,
-    date: dateVal || new Date().toISOString().split('T')[0],
-    location: location,
-    description: text,  // ✅ 改为 description，不是 desc
-    cover: cover,
-    pages: 1,
-    user_id: currentUser.id,  // ✅ 改为 user_id，不是 userId
-    photos: uploadedPhotos,     // ✅ Supabase JSONB 会自动处理数组
-    theme: currentTheme,
-    layout: currentLayout
-    // 不要传 id、createdAt，让数据库自动生成
-};
-
-    showLoading(true);
-    try {
-        if (useLocalMode) {
-            // 本地模式：直接存入 localStorage
-            await new Promise(r => setTimeout(r, 300));
-            journals.unshift(journal);
-            Storage.setJournals(currentUser.id, journals);
-        } else if (supabase) {
-            // Supabase 模式
-            const { data, error } = await supabase.from('journals').insert([{
-                ...journal,
-                user_id: currentUser.id
-            }]).select();
-            if (error) throw error;
-            journals.unshift(data[0] || journal);
-        }
-
-        showToast('手帐保存成功 🌿');
-        showSection('journals');
-    } catch (err) {
-        console.error('保存失败:', err);
-        showToast('保存失败: ' + err.message);
-    } finally {
-        showLoading(false);
-    }
-}
-
-async function loadUserJournals() {
-    if (!currentUser) return;
-
-    showLoading(true);
-    try {
-        if (useLocalMode) {
-            await new Promise(r => setTimeout(r, 200));
-            journals = Storage.getJournals(currentUser.id);
-        } else if (supabase) {
-            const { data, error } = await supabase
-                .from('journals')
-                .select('*')
-                .eq('user_id', currentUser.id)
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            journals = data || [];
-        }
-        renderJournals();
-    } catch (err) {
-        console.error('加载失败:', err);
-        journals = [];
-    } finally {
-        showLoading(false);
-    }
 }
 
 // ==================== 工具函数 ====================
@@ -1001,6 +612,8 @@ function showToast(message) {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
+
+let isLoginMode = true;
 </script>
 </body>
 </html>
