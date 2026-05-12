@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root{--cream:#FAF8F5;--warm-white:#FDFCFA;--paper:#F5F0EB;--latte:#E8DFD4;--sand:#D4C5B3;--taupe:#B8A99A;--warm-gray:#9A8B7A;--stone:#7A6B5A;--ink:#3D352E;--soft-ink:#5A5045;--rose:#C4A494;--sage:#A8B5A0;--dusty-blue:#94A8B4;--peach:#D4A594;--film-border:#1a1a1a;--shadow-soft:rgba(61,53,46,0.06);--shadow-medium:rgba(61,53,46,0.1);--font-serif:'Noto Serif SC','Georgia',serif;--font-sans:'Noto Sans SC','PingFang SC',sans-serif;--font-display:'ZCOOL XiaoWei','Noto Serif SC',serif}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -201,11 +200,11 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 <h2 id="authTitle">欢迎回到旅记</h2>
 <p class="subtitle" id="authSubtitle">记录每一次出发，珍藏每一份感动</p>
 <input type="email" class="auth-input" id="authEmail" placeholder="邮箱地址">
-<input type="password" class="auth-input" id="authPassword" placeholder="密码">
+<input type="password" class="auth-input" id="authPassword" placeholder="密码（至少6位）">
 <div class="auth-error" id="authError"></div>
 <button class="auth-btn auth-btn-primary" id="authPrimaryBtn">登录</button>
 <div class="auth-divider">或</div>
-<button class="auth-btn auth-btn-secondary" id="authGoogleBtn">使用 Google 登录</button>
+<button class="auth-btn auth-btn-secondary" id="authGuestBtn">🎋 以访客模式体验</button>
 <div class="auth-switch">
 <span id="authSwitchText">还没有账号？</span>
 <a id="authSwitchLink">立即注册</a>
@@ -349,429 +348,659 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 <button class="fab" onclick="showSection('editor')">+</button>
 
 <script>
-const SUPABASE_URL='https://yrpjgzoiaipiutbtnjle.supabase.co';
-const SUPABASE_KEY='sb_publishable_MKvv219kLNsN1lTGvxbWzg_vUJpu4Ky';
-let supabase=null;
-let currentUser=null;
+// ==================== 配置区 ====================
+// 【重要】请替换为你自己的 Supabase 项目配置
+const SUPABASE_URL = 'https://yrpjgzoiaipiutbtnjle.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MKvv219kLNsN1lTGvxbWzg_vUJpu4Ky';
 
-function initSupabase(){
-if(SUPABASE_URL.includes('your-project')){console.log('Supabase未配置，使用本地存储模式');return false}
-try{supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return true}catch(e){console.error('Supabase初始化失败:',e);return false}
+let supabase = null;
+let currentUser = null;
+let useLocalMode = false; // true = 本地存储模式，false = Supabase 模式
+
+// ==================== 初始化 ====================
+function initSupabase() {
+    // 检查配置是否已填写
+    if (SUPABASE_URL.includes('your-project') || SUPABASE_KEY.includes('your-anon')) {
+        console.log('⚠️ Supabase 未配置，启用本地存储模式');
+        useLocalMode = true;
+        return false;
+    }
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        useLocalMode = false;
+        console.log('✅ Supabase 已连接');
+        return true;
+    } catch (e) {
+        console.error('❌ Supabase 初始化失败:', e);
+        useLocalMode = true;
+        return false;
+    }
 }
 
-let uploadedPhotos=[];
-let currentTheme='warm';
-let currentLayout='two-col';
-let isLoginMode=true;
-let journals=JSON.parse(localStorage.getItem('travel_journals')||'[]');
+// ==================== 全局状态 ====================
+let uploadedPhotos = [];
+let currentTheme = 'warm';
+let currentLayout = 'two-col';
+let isLoginMode = true;
+let journals = [];
 
-const templates=[
-{id:'daily',name:'每日 PLOG',desc:'记录一天的美好，适合小红书风格长图',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','快速记录'],pages:1},
-{id:'food',name:'美食日记',desc:'记录旅途中的每一道美味，带评分系统',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','探店'],pages:1},
-{id:'city',name:'城市碎片',desc:'街头巷尾的随手拍，拼贴风排版',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','氛围感'],pages:1},
-{id:'spot',name:'景点记录',desc:'地标打卡与深度游览，地图轨迹展示',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','打卡'],pages:1},
-{id:'mood',name:'情绪页',desc:'用文字和色彩表达旅行中的心情',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','治愈'],pages:1},
-{id:'summary',name:'旅行总结',desc:'完整旅程回顾，自动生成时间轴',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','纪念册'],pages:3}
-];
-
-const demoJournals=[
-{id:'1',title:'京都三日',date:'2024.04.15',location:'京都, 日本',cover:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',desc:'樱花季的京都，古老与温柔并存。在哲学之道散步，在鸭川边发呆，在祗园偶遇艺伎。',pages:5},
-{id:'2',title:'台北夜市巡礼',date:'2024.03.20',location:'台北, 台湾',cover:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',desc:'从士林到饶河，从宁夏到南机场。每一口都是记忆的味道，每一盏灯都是城市的温度。',pages:3},
-{id:'3',title:'冰岛环岛',date:'2024.02.10',location:'冰岛',cover:'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=600&h=400&fit=crop',desc:'在世界尽头看极光跳舞，在黑沙滩听海浪低语。冰岛教会我什么是真正的孤独与壮阔。',pages:8}
-];
-
-document.addEventListener('DOMContentLoaded',()=>{
-initSupabase();
-renderTemplates();
-renderJournals();
-setupEventListeners();
-setupThemeOptions();
-setupLayoutOptions();
-const today=new Date().toISOString().split('T')[0];
-document.getElementById('inputDate').value=today;
-updatePreview();
-});
-
-function showAuth(){document.getElementById('authOverlay').classList.add('active')}
-function hideAuth(){document.getElementById('authOverlay').classList.remove('active')}
-
-function toggleAuthMode(){
-isLoginMode=!isLoginMode;
-document.getElementById('authTitle').textContent=isLoginMode?'欢迎回到旅记':'开启你的旅记';
-document.getElementById('authSubtitle').textContent=isLoginMode?'记录每一次出发，珍藏每一份感动':'创建账号，开始记录你的旅行故事';
-document.getElementById('authPrimaryBtn').textContent=isLoginMode?'登录':'注册';
-document.getElementById('authSwitchText').textContent=isLoginMode?'还没有账号？':'已有账号？';
-document.getElementById('authSwitchLink').textContent=isLoginMode?'立即注册':'立即登录';
-document.getElementById('authError').textContent='';
-}
-
-async function handleAuth(){
-const email=document.getElementById('authEmail').value;
-const password=document.getElementById('authPassword').value;
-const errorEl=document.getElementById('authError');
-if(!email||!password){errorEl.textContent='请填写邮箱和密码';return}
-showLoading(true);
-try{
-if(supabase){
-if(isLoginMode){
-const {data,error}=await supabase.auth.signInWithPassword({email,password});
-if(error)throw error;currentUser=data.user;
-}else{
-const {data,error}=await supabase.auth.signUp({email,password});
-if(error)throw error;currentUser=data.user;
-}
-}else{
-await new Promise(r=>setTimeout(r,800));
-const users=JSON.parse(localStorage.getItem('travel_users')||'[]');
-if(isLoginMode){
-const user=users.find(u=>u.email===email&&u.password===password);
-if(!user)throw new Error('邮箱或密码错误');
-currentUser={email:user.email,id:user.id};
-}else{
-if(users.find(u=>u.email===email))throw new Error('该邮箱已注册');
-const newUser={id:Date.now().toString(),email,password};
-users.push(newUser);localStorage.setItem('travel_users',JSON.stringify(users));
-currentUser={email,id:newUser.id};
-}
-}
-hideAuth();updateUserUI();
-showToast(isLoginMode?'欢迎回来 ✨':'注册成功，开始记录吧 🌿');
-loadUserJournals();
-}catch(err){errorEl.textContent=err.message||'操作失败，请重试'}
-finally{showLoading(false)}
-}
-
-async function handleGoogleAuth(){
-if(!supabase){showToast('请先配置 Supabase 以使用 Google 登录');return}
-try{
-const {data,error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
-if(error)throw error;
-}catch(err){document.getElementById('authError').textContent=err.message}
-}
-
-async function logout(){
-if(supabase){await supabase.auth.signOut()}
-currentUser=null;updateUserUI();showToast('已安全退出');showSection('home');
-}
-
-function updateUserUI(){
-const avatar=document.getElementById('userAvatar');
-const navJournals=document.getElementById('navJournals');
-const navCreate=document.getElementById('navCreate');
-if(currentUser){
-avatar.style.display='flex';
-avatar.textContent=currentUser.email.charAt(0).toUpperCase();
-navJournals.style.display='block';
-navCreate.textContent='新建手帐';
-navCreate.onclick=()=>showSection('editor');
-}else{
-avatar.style.display='none';
-navJournals.style.display='none';
-navCreate.textContent='登录 / 注册';
-navCreate.onclick=()=>showAuth();
-}
-}
-
-function toggleUserMenu(){if(confirm('确定要退出登录吗？')){logout()}}
-
-function showSection(section){
-if((section==='journals'||section==='editor')&&!currentUser){showAuth();return}
-document.querySelectorAll('.templates-section,.editor-section,.journals-section').forEach(s=>s.classList.remove('active'));
-if(section==='home'){document.getElementById('homeSection').classList.add('active')}
-else if(section==='editor'){document.getElementById('editorSection').classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
-else if(section==='journals'){document.getElementById('journalsSection').classList.add('active');renderJournals()}
-}
-
-function switchEditorTab(tab,el){
-document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-el.classList.add('active');
-}
-
-function renderTemplates(){
-const grid=document.getElementById('templatesGrid');
-grid.innerHTML=templates.map(t=>`
-<div class="template-card" onclick="selectTemplate('${t.id}')">
-<div class="template-preview"><img src="${t.image}" alt="${t.name}" loading="lazy"><div class="template-overlay"><span class="template-tag">${t.pages} 页</span></div></div>
-<div class="template-info"><h3>${t.name}</h3><p>${t.desc}</p><div class="template-meta">${t.tags.map(tag=>`<span>🏷️ ${tag}</span>`).join('')}</div></div>
-</div>
-`).join('');
-}
-
-function renderJournals(){
-const grid=document.getElementById('journalsGrid');
-const allJournals=[...demoJournals,...journals];
-if(allJournals.length===0){
-grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📔</div><h3>还没有手帐</h3><p>开始记录你的第一次旅行吧</p><button class="cta-btn cta-btn-main" onclick="showSection('editor')">创建手帐</button></div>`;
-return;
-}
-grid.innerHTML=allJournals.map(j=>`
-<div class="journal-card" onclick="viewJournal('${j.id}')">
-<div class="journal-cover">${j.cover?`<img src="${j.cover}" alt="${j.title}" loading="lazy">`:`<div class="journal-cover-placeholder">🌿</div>`}</div>
-<div class="journal-info"><h3>${j.title}</h3><div class="journal-meta">${j.date} · ${j.location} · ${j.pages} 页</div><div class="journal-desc">${j.desc||''}</div></div>
-<div class="journal-actions">
-<button class="journal-action-btn" onclick="event.stopPropagation();editJournal('${j.id}')">✏️ 编辑</button>
-<button class="journal-action-btn" onclick="event.stopPropagation();exportJournal('${j.id}')">📤 导出</button>
-<button class="journal-action-btn" onclick="event.stopPropagation();deleteJournal('${j.id}')">🗑️ 删除</button>
-</div>
-</div>
-`).join('');
-}
-
-function selectTemplate(id){
-const template=templates.find(t=>t.id===id);
-if(template){
-document.getElementById('inputTitle').value=template.name;
-showSection('editor');
-showToast(`已选择「${template.name}」模板`);
-}
-}
-
-function viewJournal(id){
-showToast('查看手帐功能开发中...');
-}
-
-function editJournal(id){
-showToast('编辑功能开发中...');
-}
-
-function exportJournal(id){
-showToast('导出功能开发中...');
-}
-
-function deleteJournal(id){
-if(!confirm('确定要删除这本手帐吗？此操作不可恢复。'))return;
-journals=journals.filter(j=>j.id!==id);
-localStorage.setItem('travel_journals',JSON.stringify(journals));
-renderJournals();
-showToast('手帐已删除');
-}
-
-function setupEventListeners(){
-document.getElementById('authPrimaryBtn').addEventListener('click',handleAuth);
-document.getElementById('authGoogleBtn').addEventListener('click',handleGoogleAuth);
-document.getElementById('authSwitchLink').addEventListener('click',toggleAuthMode);
-
-['inputTitle','inputDate','inputLocation','inputWeather','inputText','inputTags'].forEach(id=>{
-document.getElementById(id).addEventListener('input',updatePreview);
-});
-
-const uploadArea=document.getElementById('uploadArea');
-uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.style.borderColor='var(--rose)'});
-uploadArea.addEventListener('dragleave',()=>{uploadArea.style.borderColor='var(--latte)'});
-uploadArea.addEventListener('drop',e=>{
-e.preventDefault();
-uploadArea.style.borderColor='var(--latte)';
-handleFiles(e.dataTransfer.files);
-});
-}
-
-function setupThemeOptions(){
-document.querySelectorAll('.theme-option').forEach(opt=>{
-opt.addEventListener('click',()=>{
-document.querySelectorAll('.theme-option').forEach(o=>o.classList.remove('active'));
-opt.classList.add('active');
-currentTheme=opt.dataset.theme;
-applyTheme(currentTheme);
-});
-});
-}
-
-function setupLayoutOptions(){
-document.querySelectorAll('.layout-option').forEach(opt=>{
-opt.addEventListener('click',()=>{
-document.querySelectorAll('.layout-option').forEach(o=>o.classList.remove('active'));
-opt.classList.add('active');
-currentLayout=opt.dataset.layout;
-updatePhotoGridLayout();
-});
-});
-}
-
-function applyTheme(theme){
-const themes={
-warm:{'--rose':'#C4A494','--peach':'#D4A594','--sage':'#A8B5A0'},
-sage:{'--rose':'#A8B5A0','--peach':'#94A8B4','--sage':'#C4A494'},
-ocean:{'--rose':'#94A8B4','--peach':'#B8C4D0','--sage':'#A8B5A0'},
-cream:{'--rose':'#D4C5B3','--peach':'#C4B5A4','--sage':'#B8A99A'}
-};
-const t=themes[theme]||themes.warm;
-Object.keys(t).forEach(k=>document.documentElement.style.setProperty(k,t[k]));
-}
-
-function updatePhotoGridLayout(){
-const grid=document.getElementById('previewPhotoGrid');
-grid.className='photo-grid '+currentLayout;
-}
-
-function updatePreview(){
-const title=document.getElementById('inputTitle').value||'未命名旅行';
-const dateVal=document.getElementById('inputDate').value;
-const location=document.getElementById('inputLocation').value||'未知地点';
-const weather=document.getElementById('inputWeather').value;
-const text=document.getElementById('inputText').value||'';
-const tags=document.getElementById('inputTags').value.split(/\s+/).filter(t=>t);
-
-const dateObj=dateVal?new Date(dateVal):new Date();
-const weekDays=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-const dateStr=`${dateObj.getFullYear()}.${String(dateObj.getMonth()+1).padStart(2,'0')}.${String(dateObj.getDate()).padStart(2,'0')} · ${weekDays[dateObj.getDay()]}`;
-
-const weatherIcon=weather.split(' ')[0];
-const weatherText=weather;
-
-document.getElementById('previewDate').textContent=dateStr;
-document.getElementById('previewTitle').textContent=title;
-document.getElementById('previewLocation').textContent=location;
-document.getElementById('previewWeatherIcon').textContent=weatherIcon;
-document.getElementById('previewWeather').textContent=weatherText;
-document.getElementById('previewText').textContent=text;
-
-document.getElementById('previewTags').innerHTML=tags.map(t=>`<span class="page-tag">#${t}</span>`).join('');
-}
-
-function handleFileUpload(event){
-handleFiles(event.target.files);
-}
-
-function handleFiles(files){
-const remainingSlots=9-uploadedPhotos.length;
-const filesToProcess=Array.from(files).slice(0,remainingSlots);
-
-filesToProcess.forEach(file=>{
-const reader=new FileReader();
-reader.onload=e=>{
-uploadedPhotos.push(e.target.result);
-renderPhotoThumbs();
-updatePreviewPhotos();
-};
-reader.readAsDataURL(file);
-});
-
-if(files.length>remainingSlots){
-showToast(`最多上传 9 张照片，已自动选取前 ${remainingSlots} 张`);
-}
-}
-
-function renderPhotoThumbs(){
-const container=document.getElementById('photoThumbs');
-container.innerHTML=uploadedPhotos.map((photo,i)=>`
-<div class="photo-thumb"><img src="${photo}" alt="照片${i+1}"><div class="remove" onclick="removePhoto(${i})">×</div></div>
-`).join('');
-}
-
-function removePhoto(index){
-uploadedPhotos.splice(index,1);
-renderPhotoThumbs();
-updatePreviewPhotos();
-}
-
-function updatePreviewPhotos(){
-const grid=document.getElementById('previewPhotoGrid');
-const photos=uploadedPhotos.length>0?uploadedPhotos:[
-'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop',
-'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=400&fit=crop'
-];
-
-const displayPhotos=photos.slice(0,6);
-grid.innerHTML=displayPhotos.map(p=>`
-<div class="photo-item film-frame"><img src="${p}" alt="旅行照片"></div>
-`).join('');
-}
-
-function addSticker(emoji){
-showToast(`已添加 ${emoji} 贴纸`);
-}
-
-async function exportPage(){
-const page=document.getElementById('canvasPage');
-showLoading(true);
-try{
-const canvas=await html2canvas(page,{scale:2,backgroundColor:'#FDFCFA',useCORS:true});
-const link=document.createElement('a');
-link.download=`旅记_${document.getElementById('inputTitle').value||'旅行手帐'}_${new Date().toISOString().split('T')[0]}.png`;
-link.href=canvas.toDataURL('image/png');
-link.click();
-showToast('图片已导出 ✨');
-}catch(err){
-console.error('导出失败:',err);
-showToast('导出失败，请重试');
-}finally{
-showLoading(false);
-}
-}
-
-async function saveJournal(){
-if(!currentUser){showAuth();return}
-
-const title=document.getElementById('inputTitle').value||'未命名旅行';
-const dateVal=document.getElementById('inputDate').value;
-const location=document.getElementById('inputLocation').value||'未知地点';
-const text=document.getElementById('inputText').value;
-const cover=uploadedPhotos.length>0?uploadedPhotos[0]:null;
-
-const journal={
-id:Date.now().toString(),
-title,
-date:dateVal||new Date().toISOString().split('T')[0],
-location,
-desc:text.substring(0,100)+(text.length>100?'...':''),
-cover,
-pages:1,
-userId:currentUser.id||currentUser.email,
-photos:uploadedPhotos,
-theme:currentTheme,
-layout:currentLayout,
-createdAt:new Date().toISOString()
+// ==================== 本地存储工具 ====================
+const Storage = {
+    // 用户数据
+    getUsers() {
+        try { return JSON.parse(localStorage.getItem('travel_users') || '[]'); }
+        catch(e) { return []; }
+    },
+    setUsers(users) {
+        localStorage.setItem('travel_users', JSON.stringify(users));
+    },
+    // 手帐数据（按用户隔离）
+    getJournals(userId) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            return all[userId] || [];
+        } catch(e) { return []; }
+    },
+    setJournals(userId, data) {
+        try {
+            const all = JSON.parse(localStorage.getItem('travel_journals') || '{}');
+            all[userId] = data;
+            localStorage.setItem('travel_journals', JSON.stringify(all));
+        } catch(e) { console.error('保存失败:', e); }
+    },
+    // 当前登录用户
+    getCurrentUser() {
+        try { return JSON.parse(localStorage.getItem('travel_current_user') || 'null'); }
+        catch(e) { return null; }
+    },
+    setCurrentUser(user) {
+        if (user) {
+            localStorage.setItem('travel_current_user', JSON.stringify(user));
+        } else {
+            localStorage.removeItem('travel_current_user');
+        }
+    }
 };
 
-showLoading(true);
-try{
-if(supabase){
-const {data,error}=await supabase.from('journals').insert([journal]).select();
-if(error)throw error;
-}else{
-await new Promise(r=>setTimeout(r,500));
-journals.unshift(journal);
-localStorage.setItem('travel_journals',JSON.stringify(journals));
-}
-showToast('手帐保存成功 🌿');
-showSection('journals');
-}catch(err){
-console.error('保存失败:',err);
-showToast('保存失败: '+err.message);
-}finally{
-showLoading(false);
-}
+// ==================== 模板数据 ====================
+const templates = [
+    {id:'daily',name:'每日 PLOG',desc:'记录一天的美好，适合小红书风格长图',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','快速记录'],pages:1},
+    {id:'food',name:'美食日记',desc:'记录旅途中的每一道美味，带评分系统',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','探店'],pages:1},
+    {id:'city',name:'城市碎片',desc:'街头巷尾的随手拍，拼贴风排版',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','氛围感'],pages:1},
+    {id:'spot',name:'景点记录',desc:'地标打卡与深度游览，地图轨迹展示',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','打卡'],pages:1},
+    {id:'mood',name:'情绪页',desc:'用文字和色彩表达旅行中的心情',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','治愈'],pages:1},
+    {id:'summary',name:'旅行总结',desc:'完整旅程回顾，自动生成时间轴',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','纪念册'],pages:3}
+];
+
+const demoJournals = [
+    {id:'demo-1',title:'京都三日',date:'2024.04.15',location:'京都, 日本',cover:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',desc:'樱花季的京都，古老与温柔并存。在哲学之道散步，在鸭川边发呆，在祗园偶遇艺伎。',pages:5},
+    {id:'demo-2',title:'台北夜市巡礼',date:'2024.03.20',location:'台北, 台湾',cover:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',desc:'从士林到饶河，从宁夏到南机场。每一口都是记忆的味道，每一盏灯都是城市的温度。',pages:3},
+    {id:'demo-3',title:'冰岛环岛',date:'2024.02.10',location:'冰岛',cover:'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=600&h=400&fit=crop',desc:'在世界尽头看极光跳舞，在黑沙滩听海浪低语。冰岛教会我什么是真正的孤独与壮阔。',pages:8}
+];
+
+// ==================== 页面加载 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    initSupabase();
+
+    // 恢复登录状态
+    const savedUser = Storage.getCurrentUser();
+    if (savedUser) {
+        currentUser = savedUser;
+        updateUserUI();
+        loadUserJournals();
+    }
+
+    renderTemplates();
+    renderJournals();
+    setupEventListeners();
+    setupThemeOptions();
+    setupLayoutOptions();
+
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('inputDate').value = today;
+    updatePreview();
+});
+
+// ==================== 认证系统 ====================
+function showAuth() {
+    document.getElementById('authOverlay').classList.add('active');
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authError').textContent = '';
 }
 
-async function loadUserJournals(){
-if(!currentUser)return;
-showLoading(true);
-try{
-if(supabase){
-const {data,error}=await supabase.from('journals').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
-if(error)throw error;
-journals=data||[];
-}else{
-const allJournals=JSON.parse(localStorage.getItem('travel_journals')||'[]');
-journals=allJournals.filter(j=>j.userId===(currentUser.id||currentUser.email));
-}
-renderJournals();
-}catch(err){
-console.error('加载失败:',err);
-}finally{
-showLoading(false);
-}
+function hideAuth() {
+    document.getElementById('authOverlay').classList.remove('active');
 }
 
-function showLoading(show){
-document.getElementById('loadingOverlay').classList.toggle('active',show);
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    document.getElementById('authTitle').textContent = isLoginMode ? '欢迎回到旅记' : '开启你的旅记';
+    document.getElementById('authSubtitle').textContent = isLoginMode ? '记录每一次出发，珍藏每一份感动' : '创建账号，开始记录你的旅行故事';
+    document.getElementById('authPrimaryBtn').textContent = isLoginMode ? '登录' : '注册';
+    document.getElementById('authSwitchText').textContent = isLoginMode ? '还没有账号？' : '已有账号？';
+    document.getElementById('authSwitchLink').textContent = isLoginMode ? '立即注册' : '立即登录';
+    document.getElementById('authError').textContent = '';
 }
 
-function showToast(message){
-const toast=document.getElementById('toast');
-toast.textContent=message;
-toast.classList.add('show');
-setTimeout(()=>toast.classList.remove('show'),3000);
+async function handleAuth() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorEl = document.getElementById('authError');
+
+    if (!email || !password) {
+        errorEl.textContent = '请填写邮箱和密码';
+        return;
+    }
+    if (password.length < 6) {
+        errorEl.textContent = '密码至少需要6位';
+        return;
+    }
+
+    showLoading(true);
+    errorEl.textContent = '';
+
+    try {
+        if (useLocalMode) {
+            // ===== 本地模式 =====
+            await new Promise(r => setTimeout(r, 600)); // 模拟网络延迟
+            const users = Storage.getUsers();
+
+            if (isLoginMode) {
+                // 登录
+                const user = users.find(u => u.email === email && u.password === password);
+                if (!user) {
+                    throw new Error('邮箱或密码错误，请检查');
+                }
+                currentUser = { email: user.email, id: user.id, name: user.email.split('@')[0] };
+            } else {
+                // 注册
+                if (users.find(u => u.email === email)) {
+                    throw new Error('该邮箱已注册，请直接登录');
+                }
+                const newUser = { 
+                    id: 'local_' + Date.now().toString(36), 
+                    email: email, 
+                    password: password,
+                    createdAt: new Date().toISOString()
+                };
+                users.push(newUser);
+                Storage.setUsers(users);
+                currentUser = { email: newUser.email, id: newUser.id, name: newUser.email.split('@')[0] };
+            }
+
+            // 保存登录状态
+            Storage.setCurrentUser(currentUser);
+
+        } else {
+            // ===== Supabase 模式 =====
+            if (isLoginMode) {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                currentUser = { 
+                    email: data.user.email, 
+                    id: data.user.id, 
+                    name: data.user.email.split('@')[0]
+                };
+            } else {
+                // 注册时关闭邮箱确认（开发环境）
+                const { data, error } = await supabase.auth.signUp({ 
+                    email, 
+                    password,
+                    options: { data: { name: email.split('@')[0] } }
+                });
+                if (error) throw error;
+
+                // 如果 Supabase 开启了邮箱确认，提示用户
+                if (data.user && data.user.identities && data.user.identities.length === 0) {
+                    throw new Error('该邮箱已注册，请直接登录');
+                }
+
+                currentUser = { 
+                    email: data.user.email, 
+                    id: data.user.id, 
+                    name: data.user.email.split('@')[0]
+                };
+            }
+            Storage.setCurrentUser(currentUser);
+        }
+
+        hideAuth();
+        updateUserUI();
+        loadUserJournals();
+        showToast(isLoginMode ? '欢迎回来 ✨' : '注册成功，开始记录吧 🌿');
+
+    } catch (err) {
+        console.error('认证错误:', err);
+        errorEl.textContent = err.message || '操作失败，请重试';
+    } finally {
+        showLoading(false);
+    }
+}
+
+// 访客模式 - 无需登录即可体验
+function guestLogin() {
+    currentUser = { 
+        id: 'guest_' + Date.now().toString(36), 
+        email: 'guest@travelplog.app', 
+        name: '访客'
+    };
+    Storage.setCurrentUser(currentUser);
+    hideAuth();
+    updateUserUI();
+    loadUserJournals();
+    showToast('已以访客模式登录 🎋');
+}
+
+async function logout() {
+    if (!useLocalMode && supabase) {
+        await supabase.auth.signOut();
+    }
+    currentUser = null;
+    Storage.setCurrentUser(null);
+    updateUserUI();
+    journals = [];
+    renderJournals();
+    showToast('已安全退出');
+    showSection('home');
+}
+
+function updateUserUI() {
+    const avatar = document.getElementById('userAvatar');
+    const navJournals = document.getElementById('navJournals');
+    const navCreate = document.getElementById('navCreate');
+
+    if (currentUser) {
+        avatar.style.display = 'flex';
+        avatar.textContent = (currentUser.name || currentUser.email).charAt(0).toUpperCase();
+        navJournals.style.display = 'block';
+        navCreate.textContent = '新建手帐';
+        navCreate.onclick = () => showSection('editor');
+    } else {
+        avatar.style.display = 'none';
+        navJournals.style.display = 'none';
+        navCreate.textContent = '登录 / 注册';
+        navCreate.onclick = () => showAuth();
+    }
+}
+
+function toggleUserMenu() {
+    if (confirm('确定要退出登录吗？')) {
+        logout();
+    }
+}
+
+// ==================== 导航 ====================
+function showSection(section) {
+    if ((section === 'journals' || section === 'editor') && !currentUser) {
+        showAuth();
+        return;
+    }
+
+    document.querySelectorAll('.templates-section, .editor-section, .journals-section').forEach(s => {
+        s.classList.remove('active');
+    });
+
+    if (section === 'home') {
+        document.getElementById('homeSection').classList.add('active');
+    } else if (section === 'editor') {
+        document.getElementById('editorSection').classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (section === 'journals') {
+        document.getElementById('journalsSection').classList.add('active');
+        renderJournals();
+    }
+}
+
+function switchEditorTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+}
+
+// ==================== 渲染 ====================
+function renderTemplates() {
+    const grid = document.getElementById('templatesGrid');
+    grid.innerHTML = templates.map(t => `
+        <div class="template-card" onclick="selectTemplate('${t.id}')">
+            <div class="template-preview">
+                <img src="${t.image}" alt="${t.name}" loading="lazy">
+                <div class="template-overlay"><span class="template-tag">${t.pages} 页</span></div>
+            </div>
+            <div class="template-info">
+                <h3>${t.name}</h3>
+                <p>${t.desc}</p>
+                <div class="template-meta">${t.tags.map(tag => `<span>🏷️ ${tag}</span>`).join('')}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderJournals() {
+    const grid = document.getElementById('journalsGrid');
+    const allJournals = currentUser ? [...journals] : [];
+
+    // 未登录时显示演示数据
+    const displayJournals = currentUser ? allJournals : demoJournals;
+
+    if (displayJournals.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1">
+                <div class="empty-icon">📔</div>
+                <h3>还没有手帐</h3>
+                <p>开始记录你的第一次旅行吧</p>
+                <button class="cta-btn cta-btn-main" onclick="showSection('editor')">创建手帐</button>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = displayJournals.map(j => `
+        <div class="journal-card" onclick="viewJournal('${j.id}')">
+            <div class="journal-cover">
+                ${j.cover ? `<img src="${j.cover}" alt="${j.title}" loading="lazy">` : `<div class="journal-cover-placeholder">🌿</div>`}
+            </div>
+            <div class="journal-info">
+                <h3>${j.title}</h3>
+                <div class="journal-meta">${j.date} · ${j.location} · ${j.pages} 页</div>
+                <div class="journal-desc">${j.desc || ''}</div>
+            </div>
+            <div class="journal-actions">
+                <button class="journal-action-btn" onclick="event.stopPropagation();editJournal('${j.id}')">✏️ 编辑</button>
+                <button class="journal-action-btn" onclick="event.stopPropagation();exportJournal('${j.id}')">📤 导出</button>
+                ${currentUser && !j.id.startsWith('demo-') ? `<button class="journal-action-btn" onclick="event.stopPropagation();deleteJournal('${j.id}')">🗑️ 删除</button>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectTemplate(id) {
+    const template = templates.find(t => t.id === id);
+    if (template) {
+        document.getElementById('inputTitle').value = template.name;
+        showSection('editor');
+        showToast(`已选择「${template.name}」模板`);
+    }
+}
+
+function viewJournal(id) {
+    showToast('查看手帐功能开发中...');
+}
+
+function editJournal(id) {
+    showToast('编辑功能开发中...');
+}
+
+function exportJournal(id) {
+    showToast('导出功能开发中...');
+}
+
+async function deleteJournal(id) {
+    if (!confirm('确定要删除这本手帐吗？此操作不可恢复。')) return;
+
+    showLoading(true);
+    try {
+        if (useLocalMode) {
+            journals = journals.filter(j => j.id !== id);
+            Storage.setJournals(currentUser.id, journals);
+        } else if (supabase) {
+            const { error } = await supabase.from('journals').delete().eq('id', id);
+            if (error) throw error;
+            journals = journals.filter(j => j.id !== id);
+        }
+        renderJournals();
+        showToast('手帐已删除');
+    } catch (err) {
+        showToast('删除失败: ' + err.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==================== 编辑器交互 ====================
+function setupEventListeners() {
+    document.getElementById('authPrimaryBtn').addEventListener('click', handleAuth);
+    document.getElementById('authSwitchLink').addEventListener('click', toggleAuthMode);
+    document.getElementById('authGuestBtn').addEventListener('click', guestLogin);
+
+    ['inputTitle', 'inputDate', 'inputLocation', 'inputWeather', 'inputText', 'inputTags'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updatePreview);
+    });
+
+    const uploadArea = document.getElementById('uploadArea');
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = 'var(--rose)'; });
+    uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = 'var(--latte)'; });
+    uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--latte)';
+        handleFiles(e.dataTransfer.files);
+    });
+}
+
+function setupThemeOptions() {
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+            currentTheme = opt.dataset.theme;
+            applyTheme(currentTheme);
+        });
+    });
+}
+
+function setupLayoutOptions() {
+    document.querySelectorAll('.layout-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.layout-option').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+            currentLayout = opt.dataset.layout;
+            updatePhotoGridLayout();
+        });
+    });
+}
+
+function applyTheme(theme) {
+    const themes = {
+        warm: {'--rose': '#C4A494', '--peach': '#D4A594', '--sage': '#A8B5A0'},
+        sage: {'--rose': '#A8B5A0', '--peach': '#94A8B4', '--sage': '#C4A494'},
+        ocean: {'--rose': '#94A8B4', '--peach': '#B8C4D0', '--sage': '#A8B5A0'},
+        cream: {'--rose': '#D4C5B3', '--peach': '#C4B5A4', '--sage': '#B8A99A'}
+    };
+    const t = themes[theme] || themes.warm;
+    Object.keys(t).forEach(k => document.documentElement.style.setProperty(k, t[k]));
+}
+
+function updatePhotoGridLayout() {
+    const grid = document.getElementById('previewPhotoGrid');
+    grid.className = 'photo-grid ' + currentLayout;
+}
+
+function updatePreview() {
+    const title = document.getElementById('inputTitle').value || '未命名旅行';
+    const dateVal = document.getElementById('inputDate').value;
+    const location = document.getElementById('inputLocation').value || '未知地点';
+    const weather = document.getElementById('inputWeather').value;
+    const text = document.getElementById('inputText').value || '';
+    const tags = document.getElementById('inputTags').value.split(/\s+/).filter(t => t);
+
+    const dateObj = dateVal ? new Date(dateVal) : new Date();
+    const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const dateStr = `${dateObj.getFullYear()}.${String(dateObj.getMonth()+1).padStart(2,'0')}.${String(dateObj.getDate()).padStart(2,'0')} · ${weekDays[dateObj.getDay()]}`;
+
+    const weatherIcon = weather.split(' ')[0];
+
+    document.getElementById('previewDate').textContent = dateStr;
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewLocation').textContent = location;
+    document.getElementById('previewWeatherIcon').textContent = weatherIcon;
+    document.getElementById('previewWeather').textContent = weather;
+    document.getElementById('previewText').textContent = text;
+    document.getElementById('previewTags').innerHTML = tags.map(t => `<span class="page-tag">#${t}</span>`).join('');
+}
+
+// ==================== 照片上传 ====================
+function handleFileUpload(event) {
+    handleFiles(event.target.files);
+}
+
+function handleFiles(files) {
+    const remainingSlots = 9 - uploadedPhotos.length;
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+
+    filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            uploadedPhotos.push(e.target.result);
+            renderPhotoThumbs();
+            updatePreviewPhotos();
+        };
+        reader.readAsDataURL(file);
+    });
+
+    if (files.length > remainingSlots) {
+        showToast(`最多上传 9 张照片，已自动选取前 ${remainingSlots} 张`);
+    }
+}
+
+function renderPhotoThumbs() {
+    const container = document.getElementById('photoThumbs');
+    container.innerHTML = uploadedPhotos.map((photo, i) => `
+        <div class="photo-thumb">
+            <img src="${photo}" alt="照片${i+1}">
+            <div class="remove" onclick="removePhoto(${i})">×</div>
+        </div>
+    `).join('');
+}
+
+function removePhoto(index) {
+    uploadedPhotos.splice(index, 1);
+    renderPhotoThumbs();
+    updatePreviewPhotos();
+}
+
+function updatePreviewPhotos() {
+    const grid = document.getElementById('previewPhotoGrid');
+    const photos = uploadedPhotos.length > 0 ? uploadedPhotos : [
+        'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=400&fit=crop'
+    ];
+    const displayPhotos = photos.slice(0, 6);
+    grid.innerHTML = displayPhotos.map(p => `
+        <div class="photo-item film-frame"><img src="${p}" alt="旅行照片"></div>
+    `).join('');
+}
+
+function addSticker(emoji) {
+    showToast(`已添加 ${emoji} 贴纸`);
+}
+
+// ==================== 导出与保存 ====================
+async function exportPage() {
+    const page = document.getElementById('canvasPage');
+    showLoading(true);
+    try {
+        const canvas = await html2canvas(page, { scale: 2, backgroundColor: '#FDFCFA', useCORS: true });
+        const link = document.createElement('a');
+        link.download = `旅记_${document.getElementById('inputTitle').value || '旅行手帐'}_${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('图片已导出 ✨');
+    } catch (err) {
+        console.error('导出失败:', err);
+        showToast('导出失败，请重试');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function saveJournal() {
+    if (!currentUser) {
+        showAuth();
+        return;
+    }
+
+    const title = document.getElementById('inputTitle').value || '未命名旅行';
+    const dateVal = document.getElementById('inputDate').value;
+    const location = document.getElementById('inputLocation').value || '未知地点';
+    const text = document.getElementById('inputText').value;
+    const cover = uploadedPhotos.length > 0 ? uploadedPhotos[0] : null;
+
+    const journal = {
+        id: Date.now().toString(),
+        title,
+        date: dateVal || new Date().toISOString().split('T')[0],
+        location,
+        desc: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+        cover,
+        pages: 1,
+        userId: currentUser.id,
+        photos: uploadedPhotos,
+        theme: currentTheme,
+        layout: currentLayout,
+        createdAt: new Date().toISOString()
+    };
+
+    showLoading(true);
+    try {
+        if (useLocalMode) {
+            // 本地模式：直接存入 localStorage
+            await new Promise(r => setTimeout(r, 300));
+            journals.unshift(journal);
+            Storage.setJournals(currentUser.id, journals);
+        } else if (supabase) {
+            // Supabase 模式
+            const { data, error } = await supabase.from('journals').insert([{
+                ...journal,
+                user_id: currentUser.id
+            }]).select();
+            if (error) throw error;
+            journals.unshift(data[0] || journal);
+        }
+
+        showToast('手帐保存成功 🌿');
+        showSection('journals');
+    } catch (err) {
+        console.error('保存失败:', err);
+        showToast('保存失败: ' + err.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function loadUserJournals() {
+    if (!currentUser) return;
+
+    showLoading(true);
+    try {
+        if (useLocalMode) {
+            await new Promise(r => setTimeout(r, 200));
+            journals = Storage.getJournals(currentUser.id);
+        } else if (supabase) {
+            const { data, error } = await supabase
+                .from('journals')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            journals = data || [];
+        }
+        renderJournals();
+    } catch (err) {
+        console.error('加载失败:', err);
+        journals = [];
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==================== 工具函数 ====================
+function showLoading(show) {
+    document.getElementById('loadingOverlay').classList.toggle('active', show);
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
 }
 </script>
 </body>
