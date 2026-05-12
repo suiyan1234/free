@@ -261,7 +261,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 </a>
 <div class="header-actions">
 <button class="header-btn" onclick="goToMyJournals()">我的手帐</button>
-<button class="header-btn primary" onclick="goToEditor()">新建手帐</button>
+<button class="header-btn primary" onclick="goToEditor()">✨ 新建手帐</button>
 <div class="user-avatar" id="userAvatar" style="display:none" onclick="toggleUserMenu()">?</div>
 </div>
 </div>
@@ -273,7 +273,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 </div>
 
 <div class="page-header-bar">
-<h1>我的手帐</h1>
+<h1>📖 我的手帐</h1>
 <div class="stats">
 <span>📔 <span class="stat-num" id="statTotal">0</span> 本手帐</span>
 <span>🌍 <span class="stat-num" id="statPlaces">0</span> 个地点</span>
@@ -443,7 +443,7 @@ function renderJournals() {
             <div class="empty-state">
                 <div class="empty-icon">📔</div>
                 <h3>还没有手帐</h3>
-                <p>每一次旅行都值得被记录。<br>点击右下角按钮，开始创建你的第一本旅行手帐吧。</p>
+                <p>这里是你的草稿箱。<br>所有保存的手帐都会在这里，点击编辑即可继续创作或导出。</p>
                 <button class="cta-btn cta-btn-main" onclick="goToEditor()">
                     <span>✨</span> 创建第一本手帐
                 </button>
@@ -482,7 +482,7 @@ function renderJournalCard(j) {
             </div>
             <div class="journal-actions">
                 <button class="journal-action-btn" onclick="event.stopPropagation();editJournal('${j.id}')">✏️ 编辑</button>
-                <button class="journal-action-btn" onclick="event.stopPropagation();exportJournal('${j.id}')">📤 导出</button>
+                
                 <button class="journal-action-btn delete" onclick="event.stopPropagation();deleteJournal('${j.id}')">🗑️ 删除</button>
             </div>
         </div>
@@ -507,10 +507,8 @@ function editJournal(id) {
 }
 
 function exportJournal(id) {
-    const journal = journals.find(j => j.id === id);
-    if (!journal) return;
-    // 简单导出：复制数据到剪贴板或提示
-    showToast(`「${journal.title}」导出功能开发中...`);
+    // 草稿箱不允许直接导出，必须进入编辑器
+    showToast("请进入编辑器页面导出");
 }
 
 async function deleteJournal(id) {
