@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>旅记 · PLOG手帐生成器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+:root{--cream:#FAF8F5;--warm-white:#FDFCFA;--paper:#F5F0EB;--latte:#E8DFD4;--sand:#D4C5B3;--taupe:#B8A99A;--warm-gray:#9A8B7A;--stone:#7A6B5A;--ink:#3D352E;--soft-ink:#5A5045;--rose:#C4A494;--sage:#A8B5A0;--dusty-blue:#94A8B4;--peach:#D4A594;--film-border:#1a1a1a;--shadow-soft:rgba(61,53,46,0.06);--shadow-medium:rgba(61,53,46,0.1);--font-serif:'Noto Serif SC','Georgia',serif;--font-sans:'Noto Sans SC','PingFang SC',sans-serif;--font-display:'ZCOOL XiaoWei','Noto Serif SC',serif}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--sand);border-radius:2px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gentlePulse{0%,100%{opacity:0.6}50%{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes grain{0%,100%{transform:translate(0,0)}10%{transform:translate(-5%,-10%)}30%{transform:translate(3%,-15%)}50%{transform:translate(12%,9%)}70%{transform:translate(9%,4%)}90%{transform:translate(-1%,7%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.animate-fade{animation:fadeIn 0.8s ease-out forwards}
+.animate-slide{animation:slideUp 0.6s ease-out forwards}
+.noise-overlay{position:fixed;top:-50%;left:-50%;width:200%;height:200%;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;animation:grain 8s steps(10) infinite}
+.auth-overlay{position:fixed;inset:0;background:rgba(250,248,245,0.92);backdrop-filter:blur(20px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.4s ease}
+.auth-overlay.active{opacity:1;pointer-events:all}
+.auth-card{background:var(--warm-white);border-radius:24px;padding:48px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px var(--shadow-medium),0 0 0 1px var(--latte);text-align:center;transform:scale(0.9);transition:transform 0.4s ease}
+.auth-overlay.active .auth-card{transform:scale(1)}
+.auth-card .logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--rose),var(--sage));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px}
+.auth-card h2{font-family:var(--font-display);font-size:28px;font-weight:400;margin-bottom:8px;color:var(--ink)}
+.auth-card .subtitle{font-size:14px;color:var(--warm-gray);margin-bottom:32px;line-height:1.6}
+.auth-input{width:100%;padding:14px 18px;border:1.5px solid var(--latte);border-radius:14px;font-size:15px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);margin-bottom:12px;transition:all 0.3s ease;outline:none}
+.auth-input:focus{border-color:var(--rose);background:var(--warm-white);box-shadow:0 0 0 4px rgba(196,164,148,0.1)}
+.auth-input::placeholder{color:var(--sand)}
+.auth-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all 0.3s ease;margin-top:8px}
+.auth-btn-primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.auth-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,164,148,0.3)}
+.auth-btn-secondary{background:transparent;color:var(--warm-gray);border:1.5px solid var(--latte);margin-top:12px}
+.auth-btn-secondary:hover{border-color:var(--sand);color:var(--stone)}
+.auth-divider{display:flex;align-items:center;gap:16px;margin:24px 0;color:var(--sand);font-size:13px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--latte)}
+.auth-switch{margin-top:20px;font-size:13px;color:var(--warm-gray)}
+.auth-switch a{color:var(--rose);text-decoration:none;font-weight:500;cursor:pointer}
+.auth-error{color:#c44;font-size:13px;margin-top:8px;min-height:20px}
+.app-container{max-width:1200px;margin:0 auto;padding:0 16px}
+.header{position:sticky;top:0;z-index:100;background:rgba(250,248,245,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--latte);padding:12px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--rose),var(--sage));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:2px}
+.logo-tag{font-size:10px;color:var(--warm-gray);letter-spacing:3px;margin-top:-2px}
+.header-actions{display:flex;align-items:center;gap:12px}
+.header-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-family:var(--font-sans);border:none;cursor:pointer;transition:all 0.3s ease;background:transparent;color:var(--soft-ink)}
+.header-btn:hover{background:var(--latte)}
+.header-btn.primary{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.header-btn.primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,164,148,0.25)}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--sage),var(--dusty-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:500;cursor:pointer;border:2px solid var(--warm-white);box-shadow:0 2px 8px var(--shadow-soft)}
+.hero{padding:60px 0 40px;text-align:center;position:relative}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:var(--paper);border-radius:20px;font-size:12px;color:var(--warm-gray);letter-spacing:1px;margin-bottom:24px;border:1px solid var(--latte)}
+.hero-badge .dot{width:6px;height:6px;background:var(--sage);border-radius:50%;animation:gentlePulse 2s ease infinite}
+.hero h1{font-family:var(--font-display);font-size:clamp(32px,5vw,56px);font-weight:400;line-height:1.3;color:var(--ink);margin-bottom:16px;letter-spacing:2px}
+.hero h1 .highlight{background:linear-gradient(135deg,var(--rose),var(--peach));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{font-size:15px;color:var(--warm-gray);max-width:520px;margin:0 auto 32px;line-height:1.8;font-weight:300}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta-btn{padding:14px 32px;border-radius:30px;font-size:15px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all 0.3s ease;border:none;display:inline-flex;align-items:center;gap:8px}
+.cta-btn-main{background:linear-gradient(135deg,var(--rose),var(--peach));color:white;box-shadow:0 4px 20px rgba(196,164,148,0.25)}
+.cta-btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(196,164,148,0.35)}
+.cta-btn-ghost{background:transparent;color:var(--soft-ink);border:1.5px solid var(--latte)}
+.cta-btn-ghost:hover{border-color:var(--sand);background:var(--paper)}
+.templates-section{padding:40px 0 60px}
+.section-header{text-align:center;margin-bottom:40px}
+.section-header h2{font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink);margin-bottom:8px}
+.section-header p{font-size:14px;color:var(--warm-gray)}
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px}
+.template-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.template-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px var(--shadow-medium)}
+.template-preview{height:200px;position:relative;overflow:hidden;background:var(--paper)}
+.template-preview img{width:100%;height:100%;object-fit:cover;transition:transform 0.6s ease}
+.template-card:hover .template-preview img{transform:scale(1.05)}
+.template-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(61,53,46,0.4),transparent);display:flex;align-items:flex-end;padding:16px;opacity:0;transition:opacity 0.3s ease}
+.template-card:hover .template-overlay{opacity:1}
+.template-tag{padding:4px 12px;background:rgba(255,255,255,0.9);border-radius:12px;font-size:11px;color:var(--soft-ink);backdrop-filter:blur(10px)}
+.template-info{padding:20px}
+.template-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.template-info p{font-size:13px;color:var(--warm-gray);line-height:1.5}
+.template-meta{display:flex;gap:12px;margin-top:12px;font-size:12px;color:var(--sand)}
+.template-meta span{display:flex;align-items:center;gap:4px}
+.editor-section{padding:20px 0 60px;display:none}
+.editor-section.active{display:block;animation:fadeIn 0.5s ease}
+.editor-layout{display:grid;grid-template-columns:1fr 380px;gap:24px}
+@media(max-width:900px){.editor-layout{grid-template-columns:1fr}}
+.canvas-area{background:var(--paper);border-radius:20px;padding:40px;min-height:600px;display:flex;align-items:center;justify-content:center;position:relative;border:1px solid var(--latte)}
+.canvas-page{width:100%;max-width:500px;background:var(--warm-white);border-radius:16px;box-shadow:0 8px 32px var(--shadow-medium);overflow:hidden;position:relative}
+.page-header{padding:24px 24px 0}
+.page-date{font-family:var(--font-serif);font-size:12px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:4px}
+.page-title{font-family:var(--font-display);font-size:22px;color:var(--ink);margin-bottom:8px}
+.page-weather{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sand)}
+.page-content{padding:20px 24px}
+.photo-grid{display:grid;gap:8px;margin-bottom:16px}
+.photo-grid.two-col{grid-template-columns:1fr 1fr}
+.photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
+.photo-grid.single{grid-template-columns:1fr}
+.photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte);aspect-ratio:1}
+.photo-item img{width:100%;height:100%;object-fit:cover}
+.photo-item.film-frame{border:8px solid var(--film-border);border-radius:4px}
+.photo-item.film-frame::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border:1px solid rgba(255,255,255,0.1);pointer-events:none}
+.photo-caption{position:absolute;bottom:0;left:0;right:0;padding:20px 8px 8px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);color:white;font-size:11px;font-family:var(--font-serif)}
+.page-text{font-family:var(--font-serif);font-size:14px;line-height:1.9;color:var(--soft-ink);margin-bottom:16px}
+.page-text .highlight{background:linear-gradient(to bottom,transparent 60%,rgba(196,164,148,0.3) 60%)}
+.page-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.page-tag{padding:4px 12px;background:var(--paper);border-radius:12px;font-size:12px;color:var(--warm-gray);border:1px solid var(--latte)}
+.page-footer{padding:0 24px 24px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--sand)}
+.page-stamp{padding:4px 12px;border:1.5px solid var(--rose);border-radius:4px;font-family:var(--font-serif);font-size:11px;color:var(--rose);transform:rotate(-3deg)}
+.editor-sidebar{display:flex;flex-direction:column;gap:16px}
+.sidebar-card{background:var(--warm-white);border-radius:16px;padding:20px;border:1px solid var(--latte)}
+.sidebar-card h3{font-family:var(--font-serif);font-size:15px;font-weight:500;margin-bottom:16px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.sidebar-card h3 .icon{font-size:18px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:var(--warm-gray);margin-bottom:6px;letter-spacing:0.5px}
+.form-input,.form-textarea,.form-select{width:100%;padding:10px 14px;border:1.5px solid var(--latte);border-radius:12px;font-size:14px;font-family:var(--font-sans);background:var(--cream);color:var(--ink);outline:none;transition:all 0.3s ease}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.1)}
+.form-textarea{min-height:80px;resize:vertical}
+.upload-area{border:2px dashed var(--latte);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all 0.3s ease;background:var(--cream)}
+.upload-area:hover{border-color:var(--rose);background:rgba(196,164,148,0.05)}
+.upload-area .upload-icon{font-size:32px;margin-bottom:8px}
+.upload-area p{font-size:13px;color:var(--warm-gray)}
+.upload-area small{font-size:11px;color:var(--sand)}
+.photo-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;background:var(--latte)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;cursor:pointer;opacity:0;transition:opacity 0.2s}
+.photo-thumb:hover .remove{opacity:1}
+.theme-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.theme-option{aspect-ratio:1;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all 0.3s ease;position:relative}
+.theme-option:hover{transform:scale(1.05)}
+.theme-option.active{border-color:var(--rose);box-shadow:0 0 0 3px rgba(196,164,148,0.2)}
+.theme-option .theme-name{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.layout-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.layout-option{padding:10px;border:1.5px solid var(--latte);border-radius:10px;text-align:center;cursor:pointer;font-size:12px;color:var(--warm-gray);transition:all 0.3s ease}
+.layout-option:hover{border-color:var(--sand)}
+.layout-option.active{border-color:var(--rose);background:rgba(196,164,148,0.05);color:var(--rose)}
+.action-buttons{display:flex;gap:10px}
+.action-btn{flex:1;padding:12px;border-radius:12px;font-size:13px;font-family:var(--font-sans);font-weight:500;cursor:pointer;border:none;transition:all 0.3s ease;display:flex;align-items:center;justify-content:center;gap:6px}
+.action-btn-export{background:linear-gradient(135deg,var(--rose),var(--peach));color:white}
+.action-btn-export:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,164,148,0.25)}
+.action-btn-save{background:var(--paper);color:var(--soft-ink);border:1.5px solid var(--latte)}
+.action-btn-save:hover{background:var(--latte)}
+.journals-section{padding:20px 0 60px;display:none}
+.journals-section.active{display:block;animation:fadeIn 0.5s ease}
+.journals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.journal-card{background:var(--warm-white);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px var(--shadow-soft);transition:all 0.4s ease;cursor:pointer;border:1px solid var(--latte)}
+.journal-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px var(--shadow-medium)}
+.journal-cover{height:180px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--latte),var(--paper))}
+.journal-cover img{width:100%;height:100%;object-fit:cover}
+.journal-cover-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:48px}
+.journal-info{padding:20px}
+.journal-info h3{font-family:var(--font-serif);font-size:17px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+.journal-info .journal-meta{font-size:12px;color:var(--warm-gray);margin-bottom:12px}
+.journal-info .journal-desc{font-size:13px;color:var(--soft-ink);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.journal-actions{display:flex;gap:8px;padding:0 20px 20px}
+.journal-action-btn{padding:6px 14px;border-radius:10px;font-size:12px;border:none;cursor:pointer;transition:all 0.2s ease;background:var(--paper);color:var(--soft-ink)}
+.journal-action-btn:hover{background:var(--latte)}
+.footer{padding:40px 0;text-align:center;border-top:1px solid var(--latte);margin-top:40px}
+.footer p{font-size:12px;color:var(--sand);letter-spacing:1px}
+.footer .heart{color:var(--rose)}
+@media(max-width:640px){.hero{padding:40px 0 30px}.hero h1{font-size:28px}.templates-grid{grid-template-columns:1fr}.editor-layout{grid-template-columns:1fr}.canvas-area{padding:20px;min-height:auto}.canvas-page{max-width:100%}.header-inner{padding:0 12px}.logo-text{font-size:18px}.journals-grid{grid-template-columns:1fr}.auth-card{padding:32px 24px}}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:white;padding:12px 24px;border-radius:12px;font-size:14px;z-index:2000;opacity:0;transition:all 0.4s ease;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.loading-overlay{position:fixed;inset:0;background:rgba(250,248,245,0.9);backdrop-filter:blur(10px);z-index:3000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
+.loading-overlay.active{opacity:1;pointer-events:all}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--latte);border-top-color:var(--rose);border-radius:50%;animation:spin 1s linear infinite}
+.loading-text{font-size:14px;color:var(--warm-gray);font-family:var(--font-serif)}
+.sticker-palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sticker-item{width:40px;height:40px;border-radius:10px;background:var(--cream);border:1.5px solid var(--latte);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:all 0.2s ease}
+.sticker-item:hover{transform:scale(1.1);border-color:var(--rose);background:var(--warm-white)}
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5}
+.empty-state h3{font-family:var(--font-serif);font-size:18px;color:var(--soft-ink);margin-bottom:8px}
+.empty-state p{font-size:14px;color:var(--warm-gray);margin-bottom:20px}
+.tabs{display:flex;gap:4px;background:var(--paper);padding:4px;border-radius:14px;margin-bottom:24px;width:fit-content}
+.tab{padding:8px 20px;border-radius:10px;font-size:14px;font-family:var(--font-sans);cursor:pointer;transition:all 0.3s ease;border:none;background:transparent;color:var(--warm-gray)}
+.tab.active{background:var(--warm-white);color:var(--ink);box-shadow:0 2px 8px var(--shadow-soft)}
+.tab:hover:not(.active){color:var(--soft-ink)}
+.divider{height:1px;background:linear-gradient(to right,transparent,var(--latte),transparent);margin:40px 0}
+.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--peach));color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(196,164,148,0.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;animation:float 3s ease infinite}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(196,164,148,0.5)}
+@media(min-width:901px){.fab{display:none}}
+</style>
+</head>
+<body>
+<div class="noise-overlay"></div>
+
+<div class="auth-overlay" id="authOverlay">
+<div class="auth-card">
+<div class="logo-icon">🌿</div>
+<h2 id="authTitle">欢迎回到旅记</h2>
+<p class="subtitle" id="authSubtitle">记录每一次出发，珍藏每一份感动</p>
+<input type="email" class="auth-input" id="authEmail" placeholder="邮箱地址">
+<input type="password" class="auth-input" id="authPassword" placeholder="密码">
+<div class="auth-error" id="authError"></div>
+<button class="auth-btn auth-btn-primary" id="authPrimaryBtn">登录</button>
+<div class="auth-divider">或</div>
+<button class="auth-btn auth-btn-secondary" id="authGoogleBtn">使用 Google 登录</button>
+<div class="auth-switch">
+<span id="authSwitchText">还没有账号？</span>
+<a id="authSwitchLink">立即注册</a>
+</div>
+</div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-spinner"></div>
+<div class="loading-text">正在整理旅行记忆...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<header class="header">
+<div class="header-inner">
+<a href="#" class="logo" onclick="showSection('home');return false">
+<div class="logo-mark">🌿</div>
+<div><div class="logo-text">旅记</div><div class="logo-tag">TRAVEL PLOG</div></div>
+</a>
+<div class="header-actions">
+<button class="header-btn" onclick="showSection('journals')" id="navJournals">我的手帐</button>
+<button class="header-btn primary" onclick="showSection('editor')" id="navCreate">新建手帐</button>
+<div class="user-avatar" id="userAvatar" style="display:none" onclick="toggleUserMenu()">?</div>
+</div>
+</div>
+</header>
+
+<div class="app-container">
+<section class="templates-section active" id="homeSection">
+<div class="hero">
+<div class="hero-badge"><span class="dot"></span><span>AI 智能排版 · 一键生成</span></div>
+<h1>把旅行碎片<br>变成<span class="highlight">会呼吸的手帐</span></h1>
+<p class="hero-desc">上传照片，写下心情，AI 自动为你排版成日系杂志风 PLOG。<br>胶片感、留白美学、低饱和配色——让每一次出发都值得被珍藏。</p>
+<div class="hero-cta">
+<button class="cta-btn cta-btn-main" onclick="showSection('editor')"><span>✨</span> 开始创作</button>
+<button class="cta-btn cta-btn-ghost" onclick="showSection('journals')"><span>📖</span> 浏览手帐</button>
+</div>
+</div>
+<div class="divider"></div>
+<div class="section-header"><h2>精选模板</h2><p>选择一种风格，开启你的旅行记录</p></div>
+<div class="templates-grid" id="templatesGrid"></div>
+</section>
+
+<section class="editor-section" id="editorSection">
+<div class="tabs">
+<button class="tab active" onclick="switchEditorTab('content',this)">内容编辑</button>
+<button class="tab" onclick="switchEditorTab('style',this)">风格样式</button>
+<button class="tab" onclick="switchEditorTab('export',this)">导出分享</button>
+</div>
+<div class="editor-layout">
+<div class="canvas-area">
+<div class="canvas-page" id="canvasPage">
+<div class="page-header">
+<div class="page-date" id="previewDate">2024.05.12 · 星期日</div>
+<div class="page-title" id="previewTitle">京都的午后</div>
+<div class="page-weather">
+<span id="previewWeatherIcon">☀️</span>
+<span id="previewWeather">晴 24°C</span>
+<span>·</span>
+<span id="previewLocation">京都 · 清水寺</span>
+</div>
+</div>
+<div class="page-content">
+<div class="photo-grid two-col" id="previewPhotoGrid">
+<div class="photo-item film-frame"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop" alt="旅行照片"></div>
+<div class="photo-item film-frame"><img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=400&fit=crop" alt="旅行照片"></div>
+</div>
+<div class="page-text" id="previewText">走在二年坂的石板路上，阳光透过古老的木屋洒下来，空气中飘着抹茶和檀香的混合味道。在一家不起眼的小店前停下脚步，点了一份抹茶冰淇淋，看着远处的五重塔在蓝天下静静伫立。</div>
+<div class="page-tags" id="previewTags">
+<span class="page-tag">#京都</span>
+<span class="page-tag">#抹茶</span>
+<span class="page-tag">#古寺</span>
+<span class="page-tag">#慢旅行</span>
+</div>
+</div>
+<div class="page-footer">
+<div class="page-stamp">TRAVEL PLOG</div>
+<span>Page 01</span>
+</div>
+</div>
+</div>
+<div class="editor-sidebar">
+<div class="sidebar-card">
+<h3><span class="icon">📝</span>基本信息</h3>
+<div class="form-group"><label class="form-label">标题</label><input type="text" class="form-input" id="inputTitle" value="京都的午后" placeholder="给你的旅行起个名字"></div>
+<div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="inputDate"></div>
+<div class="form-group"><label class="form-label">地点</label><input type="text" class="form-input" id="inputLocation" value="京都 · 清水寺" placeholder="你在哪里？"></div>
+<div class="form-group"><label class="form-label">天气</label><select class="form-select" id="inputWeather"><option value="☀️ 晴">☀️ 晴</option><option value="⛅ 多云">⛅ 多云</option><option value="🌧️ 雨">🌧️ 雨</option><option value="☁️ 阴">☁️ 阴</option><option value="🌨️ 雪">🌨️ 雪</option><option value="🌈 彩虹">🌈 彩虹</option></select></div>
+</div>
+<div class="sidebar-card">
+<h3><span class="icon">📷</span>照片</h3>
+<div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+<div class="upload-icon">📤</div><p>点击或拖拽上传照片</p><small>支持 JPG、PNG，最多 9 张</small>
+</div>
+<input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFileUpload(event)">
+<div class="photo-thumbs" id="photoThumbs"></div>
+</div>
+<div class="sidebar-card">
+<h3><span class="icon">✍️</span>文字记录</h3>
+<div class="form-group"><textarea class="form-textarea" id="inputText" placeholder="写下今天的心情、见闻、感受...">走在二年坂的石板路上，阳光透过古老的木屋洒下来，空气中飘着抹茶和檀香的混合味道。在一家不起眼的小店前停下脚步，点了一份抹茶冰淇淋，看着远处的五重塔在蓝天下静静伫立。</textarea></div>
+<div class="form-group"><label class="form-label">标签 (用空格分隔)</label><input type="text" class="form-input" id="inputTags" value="京都 抹茶 古寺 慢旅行" placeholder="添加标签"></div>
+</div>
+<div class="sidebar-card">
+<h3><span class="icon">🎨</span>页面风格</h3>
+<div class="form-group"><label class="form-label">配色主题</label><div class="theme-options" id="themeOptions">
+<div class="theme-option active" style="background:linear-gradient(135deg,#C4A494,#D4A594)" data-theme="warm" title="暖棕"><span class="theme-name">暖棕</span></div>
+<div class="theme-option" style="background:linear-gradient(135deg,#A8B5A0,#94A8B4)" data-theme="sage" title="森绿"><span class="theme-name">森绿</span></div>
+<div class="theme-option" style="background:linear-gradient(135deg,#94A8B4,#B8C4D0)" data-theme="ocean" title="海蓝"><span class="theme-name">海蓝</span></div>
+<div class="theme-option" style="background:linear-gradient(135deg,#D4C5B3,#C4B5A4)" data-theme="cream" title="米白"><span class="theme-name">米白</span></div>
+</div></div>
+<div class="form-group"><label class="form-label">照片布局</label><div class="layout-options" id="layoutOptions">
+<div class="layout-option active" data-layout="two-col">双列</div>
+<div class="layout-option" data-layout="three-col">三列</div>
+<div class="layout-option" data-layout="single">单列</div>
+</div></div>
+<div class="form-group"><label class="form-label">装饰贴纸</label><div class="sticker-palette">
+<div class="sticker-item" onclick="addSticker('🌸')">🌸</div><div class="sticker-item" onclick="addSticker('✨')">✨</div><div class="sticker-item" onclick="addSticker('🎞️')">🎞️</div><div class="sticker-item" onclick="addSticker('☕')">☕</div>
+<div class="sticker-item" onclick="addSticker('🌿')">🌿</div><div class="sticker-item" onclick="addSticker('📍')">📍</div><div class="sticker-item" onclick="addSticker('🌙')">🌙</div><div class="sticker-item" onclick="addSticker('💭')">💭</div>
+</div></div>
+</div>
+<div class="sidebar-card">
+<h3><span class="icon">💾</span>操作</h3>
+<div class="action-buttons">
+<button class="action-btn action-btn-export" onclick="exportPage()"><span>📤</span> 导出图片</button>
+<button class="action-btn action-btn-save" onclick="saveJournal()"><span>💾</span> 保存</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="journals-section" id="journalsSection">
+<div class="section-header"><h2>我的手帐</h2><p>你所有的旅行记忆，都在这里安静呼吸</p></div>
+<div class="journals-grid" id="journalsGrid"></div>
+</section>
+
+<footer class="footer"><p>旅记 Travel PLOG · 让每一次出发都值得被珍藏 <span class="heart">❤</span></p></footer>
+</div>
+
+<button class="fab" onclick="showSection('editor')">+</button>
+
+<script>
+const SUPABASE_URL='https://yrpjgzoiaipiutbtnjle.supabase.co';
+const SUPABASE_KEY='sb_publishable_MKvv219kLNsN1lTGvxbWzg_vUJpu4Ky';
+let supabase=null;
+let currentUser=null;
+
+function initSupabase(){
+if(SUPABASE_URL.includes('your-project')){console.log('Supabase未配置，使用本地存储模式');return false}
+try{supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return true}catch(e){console.error('Supabase初始化失败:',e);return false}
+}
+
+let uploadedPhotos=[];
+let currentTheme='warm';
+let currentLayout='two-col';
+let isLoginMode=true;
+let journals=JSON.parse(localStorage.getItem('travel_journals')||'[]');
+
+const templates=[
+{id:'daily',name:'每日 PLOG',desc:'记录一天的美好，适合小红书风格长图',image:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',tags:['日常','快速记录'],pages:1},
+{id:'food',name:'美食日记',desc:'记录旅途中的每一道美味，带评分系统',image:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',tags:['美食','探店'],pages:1},
+{id:'city',name:'城市碎片',desc:'街头巷尾的随手拍，拼贴风排版',image:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',tags:['街拍','氛围感'],pages:1},
+{id:'spot',name:'景点记录',desc:'地标打卡与深度游览，地图轨迹展示',image:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop',tags:['景点','打卡'],pages:1},
+{id:'mood',name:'情绪页',desc:'用文字和色彩表达旅行中的心情',image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',tags:['情绪','治愈'],pages:1},
+{id:'summary',name:'旅行总结',desc:'完整旅程回顾，自动生成时间轴',image:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',tags:['总结','纪念册'],pages:3}
+];
+
+const demoJournals=[
+{id:'1',title:'京都三日',date:'2024.04.15',location:'京都, 日本',cover:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',desc:'樱花季的京都，古老与温柔并存。在哲学之道散步，在鸭川边发呆，在祗园偶遇艺伎。',pages:5},
+{id:'2',title:'台北夜市巡礼',date:'2024.03.20',location:'台北, 台湾',cover:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',desc:'从士林到饶河，从宁夏到南机场。每一口都是记忆的味道，每一盏灯都是城市的温度。',pages:3},
+{id:'3',title:'冰岛环岛',date:'2024.02.10',location:'冰岛',cover:'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=600&h=400&fit=crop',desc:'在世界尽头看极光跳舞，在黑沙滩听海浪低语。冰岛教会我什么是真正的孤独与壮阔。',pages:8}
+];
+
+document.addEventListener('DOMContentLoaded',()=>{
+initSupabase();
+renderTemplates();
+renderJournals();
+setupEventListeners();
+setupThemeOptions();
+setupLayoutOptions();
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('inputDate').value=today;
+updatePreview();
+});
+
+function showAuth(){document.getElementById('authOverlay').classList.add('active')}
+function hideAuth(){document.getElementById('authOverlay').classList.remove('active')}
+
+function toggleAuthMode(){
+isLoginMode=!isLoginMode;
+document.getElementById('authTitle').textContent=isLoginMode?'欢迎回到旅记':'开启你的旅记';
+document.getElementById('authSubtitle').textContent=isLoginMode?'记录每一次出发，珍藏每一份感动':'创建账号，开始记录你的旅行故事';
+document.getElementById('authPrimaryBtn').textContent=isLoginMode?'登录':'注册';
+document.getElementById('authSwitchText').textContent=isLoginMode?'还没有账号？':'已有账号？';
+document.getElementById('authSwitchLink').textContent=isLoginMode?'立即注册':'立即登录';
+document.getElementById('authError').textContent='';
+}
+
+async function handleAuth(){
+const email=document.getElementById('authEmail').value;
+const password=document.getElementById('authPassword').value;
+const errorEl=document.getElementById('authError');
+if(!email||!password){errorEl.textContent='请填写邮箱和密码';return}
+showLoading(true);
+try{
+if(supabase){
+if(isLoginMode){
+const {data,error}=await supabase.auth.signInWithPassword({email,password});
+if(error)throw error;currentUser=data.user;
+}else{
+const {data,error}=await supabase.auth.signUp({email,password});
+if(error)throw error;currentUser=data.user;
+}
+}else{
+await new Promise(r=>setTimeout(r,800));
+const users=JSON.parse(localStorage.getItem('travel_users')||'[]');
+if(isLoginMode){
+const user=users.find(u=>u.email===email&&u.password===password);
+if(!user)throw new Error('邮箱或密码错误');
+currentUser={email:user.email,id:user.id};
+}else{
+if(users.find(u=>u.email===email))throw new Error('该邮箱已注册');
+const newUser={id:Date.now().toString(),email,password};
+users.push(newUser);localStorage.setItem('travel_users',JSON.stringify(users));
+currentUser={email,id:newUser.id};
+}
+}
+hideAuth();updateUserUI();
+showToast(isLoginMode?'欢迎回来 ✨':'注册成功，开始记录吧 🌿');
+loadUserJournals();
+}catch(err){errorEl.textContent=err.message||'操作失败，请重试'}
+finally{showLoading(false)}
+}
+
+async function handleGoogleAuth(){
+if(!supabase){showToast('请先配置 Supabase 以使用 Google 登录');return}
+try{
+const {data,error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
+if(error)throw error;
+}catch(err){document.getElementById('authError').textContent=err.message}
+}
+
+async function logout(){
+if(supabase){await supabase.auth.signOut()}
+currentUser=null;updateUserUI();showToast('已安全退出');showSection('home');
+}
+
+function updateUserUI(){
+const avatar=document.getElementById('userAvatar');
+const navJournals=document.getElementById('navJournals');
+const navCreate=document.getElementById('navCreate');
+if(currentUser){
+avatar.style.display='flex';
+avatar.textContent=currentUser.email.charAt(0).toUpperCase();
+navJournals.style.display='block';
+navCreate.textContent='新建手帐';
+navCreate.onclick=()=>showSection('editor');
+}else{
+avatar.style.display='none';
+navJournals.style.display='none';
+navCreate.textContent='登录 / 注册';
+navCreate.onclick=()=>showAuth();
+}
+}
+
+function toggleUserMenu(){if(confirm('确定要退出登录吗？')){logout()}}
+
+function showSection(section){
+if((section==='journals'||section==='editor')&&!currentUser){showAuth();return}
+document.querySelectorAll('.templates-section,.editor-section,.journals-section').forEach(s=>s.classList.remove('active'));
+if(section==='home'){document.getElementById('homeSection').classList.add('active')}
+else if(section==='editor'){document.getElementById('editorSection').classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+else if(section==='journals'){document.getElementById('journalsSection').classList.add('active');renderJournals()}
+}
+
+function switchEditorTab(tab,el){
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+el.classList.add('active');
+}
+
+function renderTemplates(){
+const grid=document.getElementById('templatesGrid');
+grid.innerHTML=templates.map(t=>`
+<div class="template-card" onclick="selectTemplate('${t.id}')">
+<div class="template-preview"><img src="${t.image}" alt="${t.name}" loading="lazy"><div class="template-overlay"><span class="template-tag">${t.pages} 页</span></div></div>
+<div class="template-info"><h3>${t.name}</h3><p>${t.desc}</p><div class="template-meta">${t.tags.map(tag=>`<span>🏷️ ${tag}</span>`).join('')}</div></div>
+</div>
+`).join('');
+}
+
+function renderJournals(){
+const grid=document.getElementById('journalsGrid');
+const allJournals=[...demoJournals,...journals];
+if(allJournals.length===0){
+grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📔</div><h3>还没有手帐</h3><p>开始记录你的第一次旅行吧</p><button class="cta-btn cta-btn-main" onclick="showSection('editor')">创建手帐</button></div>`;
+return;
+}
+grid.innerHTML=allJournals.map(j=>`
+<div class="journal-card" onclick="viewJournal('${j.id}')">
+<div class="journal-cover">${j.cover?`<img src="${j.cover}" alt="${j.title}" loading="lazy">`:`<div class="journal-cover-placeholder">🌿</div>`}</div>
+<div class="journal-info"><h3>${j.title}</h3><div class="journal-meta">${j.date} · ${j.location} · ${j.pages} 页</div><div class="journal-desc">${j.desc||''}</div></div>
+<div class="journal-actions">
+<button class="journal-action-btn" onclick="event.stopPropagation();editJournal('${j.id}')">✏️ 编辑</button>
+<button class="journal-action-btn" onclick="event.stopPropagation();exportJournal('${j.id}')">📤 导出</button>
+<button class="journal-action-btn" onclick="event.stopPropagation();deleteJournal('${j.id}')">🗑️ 删除</button>
+</div>
+</div>
+`).join('');
+}
+
+function selectTemplate(id){
+const template=templates.find(t=>t.id===id);
+if(template){
+document.getElementById('inputTitle').value=template.name;
+showSection('editor');
+showToast(`已选择「${template.name}」模板`);
+}
+}
+
+function viewJournal(id){
+showToast('查看手帐功能开发中...');
+}
+
+function editJournal(id){
+showToast('编辑功能开发中...');
+}
+
+function exportJournal(id){
+showToast('导出功能开发中...');
+}
+
+function deleteJournal(id){
+if(!confirm('确定要删除这本手帐吗？此操作不可恢复。'))return;
+journals=journals.filter(j=>j.id!==id);
+localStorage.setItem('travel_journals',JSON.stringify(journals));
+renderJournals();
+showToast('手帐已删除');
+}
+
+function setupEventListeners(){
+document.getElementById('authPrimaryBtn').addEventListener('click',handleAuth);
+document.getElementById('authGoogleBtn').addEventListener('click',handleGoogleAuth);
+document.getElementById('authSwitchLink').addEventListener('click',toggleAuthMode);
+
+['inputTitle','inputDate','inputLocation','inputWeather','inputText','inputTags'].forEach(id=>{
+document.getElementById(id).addEventListener('input',updatePreview);
+});
+
+const uploadArea=document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.style.borderColor='var(--rose)'});
+uploadArea.addEventListener('dragleave',()=>{uploadArea.style.borderColor='var(--latte)'});
+uploadArea.addEventListener('drop',e=>{
+e.preventDefault();
+uploadArea.style.borderColor='var(--latte)';
+handleFiles(e.dataTransfer.files);
+});
+}
+
+function setupThemeOptions(){
+document.querySelectorAll('.theme-option').forEach(opt=>{
+opt.addEventListener('click',()=>{
+document.querySelectorAll('.theme-option').forEach(o=>o.classList.remove('active'));
+opt.classList.add('active');
+currentTheme=opt.dataset.theme;
+applyTheme(currentTheme);
+});
+});
+}
+
+function setupLayoutOptions(){
+document.querySelectorAll('.layout-option').forEach(opt=>{
+opt.addEventListener('click',()=>{
+document.querySelectorAll('.layout-option').forEach(o=>o.classList.remove('active'));
+opt.classList.add('active');
+currentLayout=opt.dataset.layout;
+updatePhotoGridLayout();
+});
+});
+}
+
+function applyTheme(theme){
+const themes={
+warm:{'--rose':'#C4A494','--peach':'#D4A594','--sage':'#A8B5A0'},
+sage:{'--rose':'#A8B5A0','--peach':'#94A8B4','--sage':'#C4A494'},
+ocean:{'--rose':'#94A8B4','--peach':'#B8C4D0','--sage':'#A8B5A0'},
+cream:{'--rose':'#D4C5B3','--peach':'#C4B5A4','--sage':'#B8A99A'}
+};
+const t=themes[theme]||themes.warm;
+Object.keys(t).forEach(k=>document.documentElement.style.setProperty(k,t[k]));
+}
+
+function updatePhotoGridLayout(){
+const grid=document.getElementById('previewPhotoGrid');
+grid.className='photo-grid '+currentLayout;
+}
+
+function updatePreview(){
+const title=document.getElementById('inputTitle').value||'未命名旅行';
+const dateVal=document.getElementById('inputDate').value;
+const location=document.getElementById('inputLocation').value||'未知地点';
+const weather=document.getElementById('inputWeather').value;
+const text=document.getElementById('inputText').value||'';
+const tags=document.getElementById('inputTags').value.split(/\s+/).filter(t=>t);
+
+const dateObj=dateVal?new Date(dateVal):new Date();
+const weekDays=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+const dateStr=`${dateObj.getFullYear()}.${String(dateObj.getMonth()+1).padStart(2,'0')}.${String(dateObj.getDate()).padStart(2,'0')} · ${weekDays[dateObj.getDay()]}`;
+
+const weatherIcon=weather.split(' ')[0];
+const weatherText=weather;
+
+document.getElementById('previewDate').textContent=dateStr;
+document.getElementById('previewTitle').textContent=title;
+document.getElementById('previewLocation').textContent=location;
+document.getElementById('previewWeatherIcon').textContent=weatherIcon;
+document.getElementById('previewWeather').textContent=weatherText;
+document.getElementById('previewText').textContent=text;
+
+document.getElementById('previewTags').innerHTML=tags.map(t=>`<span class="page-tag">#${t}</span>`).join('');
+}
+
+function handleFileUpload(event){
+handleFiles(event.target.files);
+}
+
+function handleFiles(files){
+const remainingSlots=9-uploadedPhotos.length;
+const filesToProcess=Array.from(files).slice(0,remainingSlots);
+
+filesToProcess.forEach(file=>{
+const reader=new FileReader();
+reader.onload=e=>{
+uploadedPhotos.push(e.target.result);
+renderPhotoThumbs();
+updatePreviewPhotos();
+};
+reader.readAsDataURL(file);
+});
+
+if(files.length>remainingSlots){
+showToast(`最多上传 9 张照片，已自动选取前 ${remainingSlots} 张`);
+}
+}
+
+function renderPhotoThumbs(){
+const container=document.getElementById('photoThumbs');
+container.innerHTML=uploadedPhotos.map((photo,i)=>`
+<div class="photo-thumb"><img src="${photo}" alt="照片${i+1}"><div class="remove" onclick="removePhoto(${i})">×</div></div>
+`).join('');
+}
+
+function removePhoto(index){
+uploadedPhotos.splice(index,1);
+renderPhotoThumbs();
+updatePreviewPhotos();
+}
+
+function updatePreviewPhotos(){
+const grid=document.getElementById('previewPhotoGrid');
+const photos=uploadedPhotos.length>0?uploadedPhotos:[
+'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop',
+'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=400&fit=crop'
+];
+
+const displayPhotos=photos.slice(0,6);
+grid.innerHTML=displayPhotos.map(p=>`
+<div class="photo-item film-frame"><img src="${p}" alt="旅行照片"></div>
+`).join('');
+}
+
+function addSticker(emoji){
+showToast(`已添加 ${emoji} 贴纸`);
+}
+
+async function exportPage(){
+const page=document.getElementById('canvasPage');
+showLoading(true);
+try{
+const canvas=await html2canvas(page,{scale:2,backgroundColor:'#FDFCFA',useCORS:true});
+const link=document.createElement('a');
+link.download=`旅记_${document.getElementById('inputTitle').value||'旅行手帐'}_${new Date().toISOString().split('T')[0]}.png`;
+link.href=canvas.toDataURL('image/png');
+link.click();
+showToast('图片已导出 ✨');
+}catch(err){
+console.error('导出失败:',err);
+showToast('导出失败，请重试');
+}finally{
+showLoading(false);
+}
+}
+
+async function saveJournal(){
+if(!currentUser){showAuth();return}
+
+const title=document.getElementById('inputTitle').value||'未命名旅行';
+const dateVal=document.getElementById('inputDate').value;
+const location=document.getElementById('inputLocation').value||'未知地点';
+const text=document.getElementById('inputText').value;
+const cover=uploadedPhotos.length>0?uploadedPhotos[0]:null;
+
+const journal={
+id:Date.now().toString(),
+title,
+date:dateVal||new Date().toISOString().split('T')[0],
+location,
+desc:text.substring(0,100)+(text.length>100?'...':''),
+cover,
+pages:1,
+userId:currentUser.id||currentUser.email,
+photos:uploadedPhotos,
+theme:currentTheme,
+layout:currentLayout,
+createdAt:new Date().toISOString()
+};
+
+showLoading(true);
+try{
+if(supabase){
+const {data,error}=await supabase.from('journals').insert([journal]).select();
+if(error)throw error;
+}else{
+await new Promise(r=>setTimeout(r,500));
+journals.unshift(journal);
+localStorage.setItem('travel_journals',JSON.stringify(journals));
+}
+showToast('手帐保存成功 🌿');
+showSection('journals');
+}catch(err){
+console.error('保存失败:',err);
+showToast('保存失败: '+err.message);
+}finally{
+showLoading(false);
+}
+}
+
+async function loadUserJournals(){
+if(!currentUser)return;
+showLoading(true);
+try{
+if(supabase){
+const {data,error}=await supabase.from('journals').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+if(error)throw error;
+journals=data||[];
+}else{
+const allJournals=JSON.parse(localStorage.getItem('travel_journals')||'[]');
+journals=allJournals.filter(j=>j.userId===(currentUser.id||currentUser.email));
+}
+renderJournals();
+}catch(err){
+console.error('加载失败:',err);
+}finally{
+showLoading(false);
+}
+}
+
+function showLoading(show){
+document.getElementById('loadingOverlay').classList.toggle('active',show);
+}
+
+function showToast(message){
+const toast=document.getElementById('toast');
+toast.textContent=message;
+toast.classList.add('show');
+setTimeout(()=>toast.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
