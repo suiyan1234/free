@@ -606,22 +606,140 @@ function updatePreview() {
 }
 
 function handleFileUpload(event) { handleFiles(event.target.files); }
-function handleFiles(files) {
+async function handleFiles(files) {
     const remaining = 9 - uploadedPhotos.length;
     const toProcess = Array.from(files).slice(0, remaining);
-    toProcess.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => { uploadedPhotos.push(e.target.result); renderPhotoThumbs(); updatePreviewPhotos(); };
-        reader.readAsDataURL(file);
+
+    if (toProcess.length === 0) {
+        showToast("最多上传9张照片");
+        return;
+    }
+
+    showLoading(true);
+    let uploadedCount = 0;
+    let failedCount = 0;
+
+    for (const file of toProcess) {
+        try {
+            // 压缩图片
+            const compressedBlob = await compressImageBlob(file, 1200, 0.8);
+
+            if (useLocalMode) {
+                // 本地模式：转为 Base64 存储
+                const base64 = await blobToBase64(compressedBlob);
+                uploadedPhotos.push(base64);
+                uploadedCount++;
+            } else {
+                // Supabase 模式：上传到 Storage
+                const url = await uploadToStorage(compressedBlob, file.name);
+                if (url) {
+                    uploadedPhotos.push(url);
+                    uploadedCount++;
+                } else {
+                    failedCount++;
+                }
+            }
+        } catch (err) {
+            console.error('图片处理失败:', err);
+            failedCount++;
+        }
+    }
+
+    renderPhotoThumbs();
+    updatePreviewPhotos();
+    showLoading(false);
+
+    if (failedCount > 0) {
+        showToast(`${uploadedCount}张上传成功，${failedCount}张失败`);
+    } else {
+        showToast(`${uploadedCount}张照片已添加 ✨`);
+    }
+}
+
+// 压缩图片为 Blob
+function compressImageBlob(file, maxWidth = 1200, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = Math.min(maxWidth / img.width, 1);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('压缩失败'));
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
     });
-    if (files.length > remaining) showToast(`最多9张，已选取前${remaining}张`);
+}
+
+// Blob 转 Base64（本地模式用）
+function blobToBase64(blob) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+    });
+}
+
+// 上传到 Supabase Storage
+async function uploadToStorage(blob, originalName) {
+    if (!supabase || !currentUser) return null;
+
+    const ext = originalName.split('.').pop() || 'jpg';
+    const fileName = `${currentUser.id}/${Date.now()}_${Math.random().toString(36).substr(2,9)}.${ext}`;
+
+    try {
+        const { data, error } = await supabase.storage
+            .from('journal-photos')
+            .upload(fileName, blob, {
+                contentType: 'image/jpeg',
+                cacheControl: '3600'
+            });
+
+        if (error) throw error;
+
+        // 获取公开 URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('journal-photos')
+            .getPublicUrl(fileName);
+
+        return publicUrl;
+    } catch (err) {
+        console.error('Storage 上传失败:', err);
+        return null;
+    }
 }
 function renderPhotoThumbs() {
     document.getElementById('photoThumbs').innerHTML = uploadedPhotos.map((p,i) => `
         <div class="editor-photo-thumb"><img src="${p}" alt=""><div class="remove" onclick="removePhoto(${i})">×</div></div>
     `).join('');
 }
-function removePhoto(i) { uploadedPhotos.splice(i,1); renderPhotoThumbs(); updatePreviewPhotos(); }
+async function removePhoto(i) {
+    const url = uploadedPhotos[i];
+
+    // 如果是 Storage URL，尝试删除云端文件
+    if (url && url.includes('journal-photos') && supabase && !useLocalMode) {
+        try {
+            // 从 URL 提取文件路径
+            const urlObj = new URL(url);
+            const pathMatch = urlObj.pathname.match(/journal-photos\/(.+)/);
+            if (pathMatch) {
+                await supabase.storage.from('journal-photos').remove([pathMatch[1]]);
+            }
+        } catch (err) {
+            console.log('删除云端文件失败（可能已被删除）:', err);
+        }
+    }
+
+    uploadedPhotos.splice(i, 1);
+    renderPhotoThumbs();
+    updatePreviewPhotos();
+}
 
 function updatePreviewPhotos() {
     const grid = document.getElementById('previewPhotoGrid');
@@ -631,20 +749,19 @@ function updatePreviewPhotos() {
     ];
     const template = templates.find(t => t.id === currentTemplate);
     const borderClass = template ? template.border : 'film-frame';
-    const display = photos.slice(0,6);
+    const display = photos.slice(0, 6);
 
-    // 根据模板选择不同的照片样式
     let html = '';
     if (currentTemplate === 'mood') {
-        html = display.map(p => `<div class="photo-item rounded-rect"><img src="${p}" alt=""></div>`).join('');
+        html = display.map(p => `<div class="photo-item rounded-rect"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
     } else if (currentTemplate === 'city') {
-        html = display.map(p => `<div class="photo-item tape"><img src="${p}" alt=""></div>`).join('');
+        html = display.map(p => `<div class="photo-item tape"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
     } else if (currentTemplate === 'food') {
-        html = display.map((p,i) => `<div class="photo-item"><img src="${p}" alt="">${i===0?'<div class="food-tag">推荐</div>':''}</div>`).join('');
+        html = display.map((p, i) => `<div class="photo-item"><img src="${p}" alt="" crossorigin="anonymous">${i === 0 ? '<div class="food-tag">推荐</div>' : ''}</div>`).join('');
     } else if (currentTemplate === 'spot') {
-        html = display.map((p,i) => `<div class="photo-item ${i===0?'wide':''}"><img src="${p}" alt=""></div>`).join('');
+        html = display.map((p, i) => `<div class="photo-item ${i === 0 ? 'wide' : ''}"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
     } else {
-        html = display.map(p => `<div class="photo-item ${borderClass}"><img src="${p}" alt=""></div>`).join('');
+        html = display.map(p => `<div class="photo-item ${borderClass}"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
     }
     grid.innerHTML = html;
 }
@@ -706,11 +823,15 @@ async function saveJournal(shouldExit=false) {
     const tags = document.getElementById('inputTags').value.split(/\s+/).filter(t => t);
     const cover = uploadedPhotos.length > 0 ? uploadedPhotos[0] : null;
 
+    // 过滤掉无效的 photos
+    const validPhotos = uploadedPhotos.filter(p => p && typeof p === 'string' && p.length > 0);
+
     showLoading(true);
     try {
         const journalData = {
             title, date: dateVal || new Date().toISOString().split('T')[0],
-            location, description: text, cover, photos: uploadedPhotos,
+            location, description: text, cover,
+            photos: validPhotos,
             template: currentTemplate, theme: currentTheme, layout: currentLayout,
             bg_color: currentBgColor, tags, user_id: currentUser.id
         };
@@ -746,14 +867,42 @@ async function exportPage() {
     const page = document.getElementById('canvasPage');
     showLoading(true);
     try {
-        const canvas = await html2canvas(page, {scale:2, backgroundColor: currentBgColor, useCORS:true});
+        // 给所有图片添加 crossorigin 属性，确保 Storage 图片能导出
+        page.querySelectorAll('img').forEach(img => {
+            if (!img.hasAttribute('crossorigin')) {
+                img.setAttribute('crossorigin', 'anonymous');
+            }
+        });
+
+        // 等待图片加载完成
+        await Promise.all(Array.from(page.querySelectorAll('img')).map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                setTimeout(resolve, 3000); // 超时保护
+            });
+        }));
+
+        const canvas = await html2canvas(page, {
+            scale: 2,
+            backgroundColor: currentBgColor,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        });
+
         const link = document.createElement('a');
         link.download = `旅记_${document.getElementById('inputTitle').value || '手帐'}_${new Date().toISOString().split('T')[0]}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
         showToast('图片已导出 ✨');
-    } catch(err) { showToast('导出失败，请重试'); }
-    finally { showLoading(false); }
+    } catch(err) {
+        console.error('导出失败:', err);
+        showToast('导出失败，请重试');
+    } finally {
+        showLoading(false);
+    }
 }
 
 function updateUserUI() {
