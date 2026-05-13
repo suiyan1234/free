@@ -139,7 +139,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 .tpl-daily .photo-grid.two-col{grid-template-columns:1fr 1fr}
 .tpl-daily .photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
 .tpl-daily .photo-grid.single{grid-template-columns:1fr}
-.tpl-daily .photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte);aspect-ratio:1}
+.tpl-daily .photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte)}
 .tpl-daily .photo-item img{width:100%;height:100%;object-fit:cover}
 .tpl-daily .photo-item.film-frame{border:6px solid var(--film-border);border-radius:4px}
 .tpl-daily .photo-item.film-frame::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border:1px solid rgba(255,255,255,0.1);pointer-events:none}
@@ -165,7 +165,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 .tpl-food .photo-grid.two-col{grid-template-columns:1fr 1fr}
 .tpl-food .photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
 .tpl-food .photo-grid.single{grid-template-columns:1fr}
-.tpl-food .photo-item{position:relative;border-radius:20px;overflow:hidden;background:var(--latte);aspect-ratio:1;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.tpl-food .photo-item{position:relative;border-radius:20px;overflow:hidden;background:var(--latte);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
 .tpl-food .photo-item img{width:100%;height:100%;object-fit:cover}
 .tpl-food .photo-item .food-tag{position:absolute;top:10px;left:10px;padding:4px 10px;background:rgba(255,255,255,0.9);border-radius:20px;font-size:10px;color:var(--soft-ink);backdrop-filter:blur(10px);font-weight:500}
 .tpl-food .page-text{font-family:var(--font-sans);font-size:13px;line-height:1.8;color:var(--soft-ink);margin-bottom:16px;padding:16px;background:rgba(255,255,255,0.6);border-radius:16px}
@@ -185,7 +185,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 .tpl-city .photo-grid.two-col{grid-template-columns:1fr 1fr}
 .tpl-city .photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
 .tpl-city .photo-grid.single{grid-template-columns:1fr}
-.tpl-city .photo-item{position:relative;border-radius:8px;overflow:hidden;background:var(--latte);aspect-ratio:1;box-shadow:0 3px 10px rgba(0,0,0,0.1);transform:rotate(var(--rot,0deg));transition:transform 0.3s}
+.tpl-city .photo-item{position:relative;border-radius:8px;overflow:hidden;background:var(--latte);box-shadow:0 3px 10px rgba(0,0,0,0.1);transform:rotate(var(--rot,0deg));transition:transform 0.3s}
 .tpl-city .photo-item:nth-child(odd){--rot:-2deg}
 .tpl-city .photo-item:nth-child(even){--rot:2deg}
 .tpl-city .photo-item img{width:100%;height:100%;object-fit:cover}
@@ -255,7 +255,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 .tpl-summary .photo-grid.two-col{grid-template-columns:1fr 1fr}
 .tpl-summary .photo-grid.three-col{grid-template-columns:1fr 1fr 1fr}
 .tpl-summary .photo-grid.single{grid-template-columns:1fr}
-.tpl-summary .photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte);aspect-ratio:1}
+.tpl-summary .photo-item{position:relative;border-radius:12px;overflow:hidden;background:var(--latte)}
 .tpl-summary .photo-item img{width:100%;height:100%;object-fit:cover}
 .tpl-summary .timeline{margin:16px 0;padding-left:20px;border-left:2px solid var(--latte)}
 .tpl-summary .timeline-item{padding:8px 0 8px 16px;position:relative;font-size:13px;color:var(--soft-ink)}
@@ -326,9 +326,9 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 <div class="editor-form-group">
 <label class="editor-form-label">照片 (最多9张)</label>
 <div class="editor-upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-<div class="upload-icon">📤</div><p>点击或拖拽上传照片</p><small>支持 JPG、PNG</small>
+<div class="upload-icon">📤</div><p>点击或拖拽上传照片</p><small>支持 JPG、PNG、HEIC（自动压缩）</small>
 </div>
-<input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFileUpload(event)">
+<input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none" onchange="handleFileUpload(event)">
 <div class="editor-photo-thumbs" id="photoThumbs"></div>
 </div>
 <div class="editor-form-group">
@@ -621,8 +621,24 @@ async function handleFiles(files) {
 
     for (const file of toProcess) {
         try {
+            // 检查文件大小（手机原图可能很大）
+            console.log('处理图片:', file.name, '大小:', (file.size / 1024 / 1024).toFixed(2), 'MB', '类型:', file.type);
+
+            // 手机 HEIC 格式转换提示
+            if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic')) {
+                showToast('检测到 HEIC 格式，尝试转换...');
+            }
+
+            // 对于大文件（>5MB），先用 FileReader 读取并压缩
+            let processedFile = file;
+            if (file.size > 5 * 1024 * 1024) {
+                console.log('文件过大，先进行客户端压缩...');
+                processedFile = await compressFile(file, 1600, 0.7);
+            }
+
             // 压缩图片
-            const compressedBlob = await compressImageBlob(file, 1200, 0.8);
+            const compressedBlob = await compressImageBlob(processedFile, 1200, 0.8);
+            console.log('压缩后大小:', (compressedBlob.size / 1024).toFixed(1), 'KB');
 
             if (useLocalMode) {
                 // 本地模式：转为 Base64 存储
@@ -654,6 +670,37 @@ async function handleFiles(files) {
     } else {
         showToast(`${uploadedCount}张照片已添加 ✨`);
     }
+}
+
+// 大文件预压缩（File → File）
+function compressFile(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = Math.min(maxWidth / img.width, 1);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            // 手机照片可能需要旋转修正
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                URL.revokeObjectURL(url);
+                if (blob) {
+                    const newFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+                    resolve(newFile);
+                } else {
+                    reject(new Error('压缩失败'));
+                }
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('图片加载失败'));
+        };
+        img.src = url;
+    });
 }
 
 // 压缩图片为 Blob
@@ -749,19 +796,28 @@ function updatePreviewPhotos() {
     ];
     const template = templates.find(t => t.id === currentTemplate);
     const borderClass = template ? template.border : 'film-frame';
-    const display = photos.slice(0, 6);
+    // 展示所有照片，不再限制6张
+    const display = photos;
 
     let html = '';
     if (currentTemplate === 'mood') {
-        html = display.map(p => `<div class="photo-item rounded-rect"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
+        // 极简风：最多显示3张圆形/圆角，保持原始比例
+        html = display.slice(0, 3).map(p => `<div class="photo-item rounded-rect"><img src="${p}" alt="" crossorigin="anonymous" style="object-fit:cover;width:100%;height:100%;"></div>`).join('');
     } else if (currentTemplate === 'city') {
-        html = display.map(p => `<div class="photo-item tape"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
+        // 拼贴风：显示所有，保持原始比例
+        html = display.map(p => `<div class="photo-item tape" style="aspect-ratio:auto"><img src="${p}" alt="" crossorigin="anonymous" style="object-fit:contain;width:100%;height:auto;max-height:280px;"></div>`).join('');
     } else if (currentTemplate === 'food') {
-        html = display.map((p, i) => `<div class="photo-item"><img src="${p}" alt="" crossorigin="anonymous">${i === 0 ? '<div class="food-tag">推荐</div>' : ''}</div>`).join('');
+        // 美食风：显示所有，保持原始比例
+        html = display.map((p, i) => `<div class="photo-item" style="aspect-ratio:auto"><img src="${p}" alt="" crossorigin="anonymous" style="object-fit:cover;width:100%;height:auto;aspect-ratio:4/3;">${i === 0 ? '<div class="food-tag">推荐</div>' : ''}</div>`).join('');
     } else if (currentTemplate === 'spot') {
-        html = display.map((p, i) => `<div class="photo-item ${i === 0 ? 'wide' : ''}"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
+        // 景点风：第一张宽幅，其余保持比例
+        html = display.map((p, i) => `<div class="photo-item ${i === 0 ? 'wide' : ''}" style="${i === 0 ? '' : 'aspect-ratio:auto'}"><img src="${p}" alt="" crossorigin="anonymous" style="object-fit:cover;width:100%;height:auto;"></div>`).join('');
+    } else if (currentTemplate === 'summary') {
+        // 总结风：双列布局，保持比例
+        html = display.map(p => `<div class="photo-item" style="aspect-ratio:auto"><img src="${p}" alt="" crossorigin="anonymous" style="object-fit:cover;width:100%;height:auto;aspect-ratio:3/2;"></div>`).join('');
     } else {
-        html = display.map(p => `<div class="photo-item ${borderClass}"><img src="${p}" alt="" crossorigin="anonymous"></div>`).join('');
+        // 默认每日PLOG：显示所有，保持原始比例（4:3）
+        html = display.map(p => `<div class="photo-item ${borderClass}" style="aspect-ratio:auto"><img src="${p}" alt="" crossorigin="anonymous" style="object-fit:cover;width:100%;height:auto;aspect-ratio:4/3;"></div>`).join('');
     }
     grid.innerHTML = html;
 }
