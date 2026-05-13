@@ -467,7 +467,7 @@ function renderJournalCard(j) {
     return `
         <div class="journal-card">
             <div class="journal-cover" onclick="viewJournalDetail('${j.id}')">
-                ${j.cover ? `<img src="${j.cover}" alt="${j.title}" loading="lazy">` : `<div class="journal-cover-placeholder">🌿</div>`}
+                ${j.cover ? `<img src="${j.cover}" alt="${j.title}" loading="lazy" crossorigin="anonymous">` : `<div class="journal-cover-placeholder">🌿</div>`}
             </div>
             <div class="journal-info" onclick="viewJournalDetail('${j.id}')">
                 <h3>${j.title || '未命名旅行'}</h3>
