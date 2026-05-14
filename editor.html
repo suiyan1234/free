@@ -123,11 +123,11 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 .editor-action-btn-cancel:hover{border-color:var(--sand);color:var(--stone)}
 
 /* Canvas Area */
-.editor-canvas-area{background:var(--paper);border-radius:20px;padding:40px;min-height:700px;display:flex;align-items:flex-start;justify-content:center;position:relative;border:1px solid var(--latte);overflow:auto}
+.editor-canvas-area{background:var(--paper);border-radius:20px;padding:40px;min-height:700px;display:flex;align-items:flex-start;justify-content:center;position:relative;border:1px solid var(--latte);overflow:visible}
 @media(max-width:640px){.editor-canvas-area{padding:20px;min-height:auto}}
 
 /* ==================== 核心：模板样式系统 ==================== */
-.canvas-page{width:100%;max-width:500px;background:var(--page-bg,var(--warm-white));border-radius:16px;box-shadow:0 8px 32px var(--shadow-medium);overflow:hidden;position:relative;margin:0 auto;transition:all 0.4s ease}
+.canvas-page{width:100%;max-width:500px;background:var(--page-bg,var(--warm-white));border-radius:16px;box-shadow:0 8px 32px var(--shadow-medium);overflow:visible;position:relative;margin:0 auto;transition:all 0.4s ease;height:auto}
 
 /* === 模板1: 每日PLOG - 标准杂志风 === */
 .tpl-daily .page-header{padding:28px 28px 0;font-family:var(--font-serif)}
@@ -328,7 +328,7 @@ body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);overf
 <div class="editor-upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
 <div class="upload-icon">📤</div><p>点击或拖拽上传照片</p><small>支持 JPG、PNG、HEIC（自动压缩）</small>
 </div>
-<input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none" onchange="handleFileUpload(event)">
+<input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none" onchange="handleFileUpload(event)">
 <div class="editor-photo-thumbs" id="photoThumbs"></div>
 </div>
 <div class="editor-form-group">
@@ -923,12 +923,16 @@ async function exportPage() {
     const page = document.getElementById('canvasPage');
     showLoading(true);
     try {
-        // 给所有图片添加 crossorigin 属性，确保 Storage 图片能导出
+        // 给所有图片添加 crossorigin 属性
         page.querySelectorAll('img').forEach(img => {
             if (!img.hasAttribute('crossorigin')) {
                 img.setAttribute('crossorigin', 'anonymous');
             }
         });
+
+        // 确保画布高度自适应（解决多图被截断）
+        page.style.height = 'auto';
+        page.style.minHeight = 'auto';
 
         // 等待图片加载完成
         await Promise.all(Array.from(page.querySelectorAll('img')).map(img => {
@@ -936,16 +940,21 @@ async function exportPage() {
             return new Promise((resolve) => {
                 img.onload = resolve;
                 img.onerror = resolve;
-                setTimeout(resolve, 3000); // 超时保护
+                setTimeout(resolve, 5000);
             });
         }));
+
+        // 强制回流，确保高度计算正确
+        page.offsetHeight;
 
         const canvas = await html2canvas(page, {
             scale: 2,
             backgroundColor: currentBgColor,
             useCORS: true,
             allowTaint: true,
-            logging: false
+            logging: false,
+            height: page.scrollHeight,  // 关键：使用实际滚动高度
+            windowHeight: page.scrollHeight
         });
 
         const link = document.createElement('a');
